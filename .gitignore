@@ -1,31 +1,80 @@
-# --- Node -------------------------------------------------------------------
+# =============================================================================
+# Root ignore rules. Patterns without a leading slash apply at every depth, so
+# these cover all three apps; each app also carries its own file so it stays
+# self-contained if it is ever extracted into a repository of its own.
+# =============================================================================
+
+# --- Node --------------------------------------------------------------------
 node_modules/
 dist/
+build/
 coverage/
+.nyc_output/
 *.tsbuildinfo
 .npm/
+.eslintcache
+# Vite writes these beside the config while resolving it.
+vite.config.*.timestamp-*
+vitest.config.*.timestamp-*
 
-# --- .NET -------------------------------------------------------------------
+# --- .NET --------------------------------------------------------------------
+# bin/ and obj/ already cover every build configuration's output, so the usual
+# [Dd]ebug/ and [Rr]elease/ patterns are deliberately NOT used here: they are
+# unanchored and would also swallow a legitimate source folder named Debug/ or
+# release/ anywhere in the tree.
 bin/
 obj/
-*.user
+artifacts/
 TestResults/
-[Dd]ebug/
-[Rr]elease/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+project.lock.json
+*.nupkg
+*.snupkg
+msbuild.log
+msbuild.err
+# Coverlet / coverage output that lands outside TestResults/
+*.coverage
+*.coveragexml
+coverage.*.xml
+coverage.*.json
+coverage.*.info
 
-# --- Environment ------------------------------------------------------------
+# --- Environment -------------------------------------------------------------
+# .env.example files are committed; real .env files never are.
 .env
 .env.local
-*.local
+.env.*.local
+!.env.example
+!.env.*.example
 
-# --- Editors / OS -----------------------------------------------------------
+# --- Editors -----------------------------------------------------------------
 .vs/
 .vscode/*
 !.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
 .idea/
-.DS_Store
-Thumbs.db
+.history/
+*.swp
+*.swo
+*~
 
-# --- Logs -------------------------------------------------------------------
+# --- Operating system --------------------------------------------------------
+.DS_Store
+.AppleDouble
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# --- Logs --------------------------------------------------------------------
 *.log
 npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*

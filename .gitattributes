@@ -1,0 +1,31 @@
+# Normalise line endings so a Windows clone does not rewrite files that tooling
+# reads byte-for-byte. Docker build contexts in particular break in confusing
+# ways when a CRLF sneaks into a Dockerfile or an entrypoint script.
+* text=auto eol=lf
+
+# Windows-native tooling expects CRLF in these.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+*.sln  text eol=crlf
+
+# Explicitly binary — never diffed, never line-ending-converted.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf  binary
+*.zip  binary
+*.snk  binary
+
+# Generated: collapse in diffs and exclude from GitHub's language statistics,
+# but still tracked — a lockfile must be committed for reproducible installs.
+package-lock.json -diff linguist-generated=true
+
+# Keep GitHub's language detection pointed at the application code.
+*.css linguist-detectable=true
+docs/** linguist-documentation=true

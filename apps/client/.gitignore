@@ -1,7 +1,17 @@
-node_modules
-dist
-coverage
+# client — Vite / Vitest output and local overrides.
+
+node_modules/
+dist/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+.eslintcache
+vite.config.*.timestamp-*
+
 .env
 .env.local
-*.local
+.env.*.local
+!.env.example
+
 .DS_Store
+*.log

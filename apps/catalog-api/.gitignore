@@ -1,0 +1,29 @@
+# catalog-api — .NET build and tooling output.
+# Kept alongside the app so the project stays self-contained; the root
+# .gitignore repeats these rules for the repository as a whole.
+
+bin/
+obj/
+artifacts/
+TestResults/
+
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+project.lock.json
+*.nupkg
+*.snupkg
+
+# Coverlet output that lands outside TestResults/
+*.coverage
+*.coveragexml
+coverage.*.xml
+coverage.*.json
+coverage.*.info
+
+msbuild.log
+msbuild.err
+
+.vs/
