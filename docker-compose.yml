@@ -1,0 +1,166 @@
+# ---------------------------------------------------------------------------
+# Shopping list — full local stack.
+#
+#   docker compose up -d                    databases only (run the apps from your IDE)
+#   docker compose --profile apps up -d     everything, including the three apps
+#
+# Databases have no profile, so they start in both modes. The apps sit behind
+# the "apps" profile.
+# ---------------------------------------------------------------------------
+
+name: shopping-list
+
+services:
+  # =========================================================================
+  # Databases
+  # =========================================================================
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sl-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Your_strong_Passw0rd}
+      MSSQL_PID: Developer
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      # sqlcmd 18 requires -C to trust the container's self-signed certificate.
+      test:
+        [
+          "CMD-SHELL",
+          '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: sl-elasticsearch
+    environment:
+      # Single-node development cluster: no TLS, no auth, no replicas.
+      # Do not carry these settings into a real deployment.
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      cluster.routing.allocation.disk.threshold_enabled: "false"
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: sl-mongodb
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test:
+        ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # =========================================================================
+  # Applications (profile: apps)
+  # =========================================================================
+
+  catalog-api:
+    profiles: ["apps"]
+    build:
+      context: ./apps/catalog-api
+      dockerfile: Dockerfile
+    container_name: sl-catalog-api
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__CatalogDb: >-
+        Server=sqlserver,1433;Database=CatalogDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Your_strong_Passw0rd};TrustServerCertificate=True;
+      Catalog__AutoMigrate: "true"
+      Catalog__SeedData: "true"
+      # The browser calls this service directly, so both the dev server and the
+      # containerised client need to be allowed origins.
+      Cors__AllowedOrigins__0: http://localhost:5173
+      Cors__AllowedOrigins__1: http://localhost:8080
+    ports:
+      - "${CATALOG_API_PORT:-5080}:8080"
+    restart: unless-stopped
+
+  orders-api:
+    profiles: ["apps"]
+    build:
+      # Root context: the image also needs infra/elasticsearch/orders.mapping.json.
+      context: .
+      dockerfile: apps/orders-api/Dockerfile
+    container_name: sl-orders-api
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # Flip to "mongodb" to persist orders in MongoDB instead. Nothing else changes.
+      NOSQL_DRIVER: ${NOSQL_DRIVER:-elasticsearch}
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      ELASTICSEARCH_INDEX: ${ELASTICSEARCH_INDEX:-orders}
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-orders}
+      MONGODB_COLLECTION: ${MONGODB_COLLECTION:-orders}
+      CORS_ORIGINS: http://localhost:5173,http://localhost:8080
+    ports:
+      - "${ORDERS_API_PORT:-3000}:3000"
+    restart: unless-stopped
+
+  client:
+    profiles: ["apps"]
+    build:
+      context: ./apps/client
+      dockerfile: Dockerfile
+      args:
+        # Vite inlines these at build time, so they are baked into the bundle.
+        # They are the URLs the *browser* uses, not container-internal names.
+        VITE_CATALOG_API_URL: http://localhost:${CATALOG_API_PORT:-5080}
+        VITE_ORDERS_API_URL: http://localhost:${ORDERS_API_PORT:-3000}
+        VITE_DEFAULT_LOCALE: ${VITE_DEFAULT_LOCALE:-he}
+    container_name: sl-client
+    depends_on:
+      catalog-api:
+        condition: service_healthy
+      orders-api:
+        condition: service_healthy
+    ports:
+      - "${CLIENT_PORT:-8080}:80"
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+  elasticsearch-data:
+  mongodb-data:

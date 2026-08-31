@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>CatalogApi</RootNamespace>
+    <AssemblyName>CatalogApi</AssemblyName>
+    <UserSecretsId>catalog-api-shopping-list</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!--
+      Swashbuckle 10.x is the line that targets net10.0 directly. Only the
+      parameterless AddSwaggerGen() / UseSwagger() / UseSwaggerUI() surface is
+      used here, which is unchanged across 7.x-10.x, so the version can be
+      moved either way without touching Program.cs.
+    -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CatalogApi.Tests" />
+  </ItemGroup>
+
+</Project>

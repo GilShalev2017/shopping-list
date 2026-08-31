@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="he" dir="rtl" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Shopping list and order checkout" />
+    <title>סל הקניות · Shopping List</title>
+    <script>
+      // Apply the persisted theme before first paint so there is no flash of the
+      // wrong palette. Mirrors the logic in src/features/ui/theme.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('shopping-list.ui');
+          var ui = raw ? JSON.parse(raw) : null;
+          var theme = (ui && ui.theme) || 'system';
+          var locale = (ui && ui.locale) || 'he';
+          var dark =
+            theme === 'dark' ||
+            (theme === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var el = document.documentElement;
+          el.setAttribute('data-theme', dark ? 'dark' : 'light');
+          el.setAttribute('lang', locale);
+          el.setAttribute('dir', locale === 'he' ? 'rtl' : 'ltr');
+        } catch (e) {
+          /* storage unavailable - fall back to the markup defaults */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

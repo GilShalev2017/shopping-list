@@ -1,0 +1,128 @@
+/**
+ * Design tokens.
+ *
+ * Every colour in the app resolves through one of these custom properties, so
+ * the dark palette is a single block of overrides rather than a parallel
+ * stylesheet. `[data-theme]` is set on <html> by useAppearance(), and also by a
+ * tiny inline script in index.html so the first paint is already correct.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #f6f7fb;
+  --bg-gradient: radial-gradient(
+      1200px 600px at 80% -10%,
+      rgb(47 95 216 / 0.1),
+      transparent 60%
+    ),
+    radial-gradient(900px 500px at 0% 0%, rgb(15 157 118 / 0.08), transparent 55%);
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eef1f7;
+  --surface-hover: #f2f5fb;
+
+  /* Lines and text */
+  --border: #e3e6ee;
+  --border-strong: #ccd2e0;
+  --text: #111725;
+  --text-muted: #5c6579;
+  --text-faint: #8a92a6;
+
+  /* Brand */
+  --brand: #2f5fd8;
+  --brand-hover: #2850bb;
+  --brand-soft: #e8eefc;
+  --brand-contrast: #ffffff;
+  --accent: #0f9d76;
+  --accent-soft: #e4f6f0;
+  --danger: #d13b52;
+  --danger-soft: #fdecef;
+  --warning: #b5730a;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06);
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px rgb(16 24 40 / 0.06);
+  --shadow-lg: 0 2px 4px rgb(16 24 40 / 0.06), 0 18px 44px rgb(16 24 40 / 0.12);
+  --ring: 0 0 0 3px rgb(47 95 216 / 0.28);
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Type */
+  --font-sans-en: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-sans-he: 'Heebo', 'Assistant', 'Segoe UI', system-ui, -apple-system, 'Arial Hebrew',
+    Arial, sans-serif;
+  --font: var(--font-sans-he);
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --duration: 180ms;
+
+  /* Layout */
+  --content-width: 1180px;
+  --header-height: 4rem;
+}
+
+:root[lang='en'] {
+  --font: var(--font-sans-en);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0d1017;
+  --bg-gradient: radial-gradient(
+      1200px 600px at 80% -10%,
+      rgb(107 149 255 / 0.12),
+      transparent 60%
+    ),
+    radial-gradient(900px 500px at 0% 0%, rgb(47 214 163 / 0.08), transparent 55%);
+  --surface: #151a23;
+  --surface-raised: #1c2230;
+  --surface-sunken: #10141c;
+  --surface-hover: #202737;
+
+  --border: #272e3d;
+  --border-strong: #3a4356;
+  --text: #e8ecf5;
+  --text-muted: #95a0b6;
+  --text-faint: #6d7789;
+
+  --brand: #6b95ff;
+  --brand-hover: #85a8ff;
+  --brand-soft: #1b2540;
+  --brand-contrast: #0d1017;
+  --accent: #2fd6a3;
+  --accent-soft: #10302a;
+  --danger: #ff7185;
+  --danger-soft: #34161e;
+  --warning: #e0a33a;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.4), 0 18px 44px rgb(0 0 0 / 0.5);
+  --ring: 0 0 0 3px rgb(107 149 255 / 0.35);
+}

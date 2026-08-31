@@ -1,0 +1,398 @@
+# Shopping List — Home Assignment
+
+A two-screen shopping application built as three independently deployable
+components, exactly as the assignment specifies:
+
+| # | Component | Stack | Responsibility |
+|---|-----------|-------|----------------|
+| 1 | `apps/client` | React 19 + Redux Toolkit + Vite | Both screens |
+| 2 | `apps/catalog-api` | .NET 10 + EF Core + **SQL Server** | Screen 1: categories and products |
+| 3 | `apps/orders-api` | NestJS 11 + **Elasticsearch** (MongoDB swappable) | Screen 2: persisting orders |
+
+Everything runs locally with Docker Compose. The Elasticsearch index mapping the
+assignment asks for is at
+[`infra/elasticsearch/orders.mapping.json`](infra/elasticsearch/orders.mapping.json).
+
+---
+
+## Quick start
+
+Prerequisites: Docker Desktop (or Docker Engine) with Compose v2. Nothing else.
+
+```bash
+git clone <this-repo> && cd shopping-list
+docker compose --profile apps up -d --build
+```
+
+First run pulls images and builds three containers, so expect a few minutes.
+Then open **<http://localhost:8080>**.
+
+| Service | URL |
+|---------|-----|
+| Client | <http://localhost:8080> |
+| Catalog API (Swagger) | <http://localhost:5080/swagger> |
+| Orders API (Swagger) | <http://localhost:3000/docs> |
+| Elasticsearch | <http://localhost:9200> |
+| SQL Server | `localhost,1433` — user `sa`, password `Your_strong_Passw0rd` |
+| MongoDB | `mongodb://localhost:27017` |
+
+The catalog database is created and seeded automatically on first start
+(6 categories, 48 products, each with Hebrew and English names). The
+Elasticsearch `orders` index is created from the mapping file on first start.
+Both steps are idempotent.
+
+To check it worked:
+
+```bash
+curl http://localhost:5080/health          # {"status":"healthy","database":"connected"}
+curl http://localhost:3000/health          # {"status":"ok","driver":"elasticsearch","store":"connected"}
+curl http://localhost:9200/orders/_mapping # the mapping the service installed
+```
+
+Shut down with `docker compose --profile apps down`, or
+`docker compose --profile apps down -v` to also drop the data volumes.
+
+### Running the apps from your IDE instead
+
+Start only the databases, then run each app natively with hot reload:
+
+```bash
+docker compose up -d          # SQL Server, Elasticsearch, MongoDB only
+
+cd apps/catalog-api && dotnet run --project src/CatalogApi   # → :5080
+cd apps/orders-api  && npm install && npm run start:dev      # → :3000
+cd apps/client      && npm install && npm run dev            # → :5173
+```
+
+The default configuration of each app already points at `localhost` for its
+database and its sibling services, so no `.env` file is required. Copy the
+`.env.example` next to each app if you want to change something.
+
+> **Apple Silicon note.** `mcr.microsoft.com/mssql/server` has no arm64 image, so
+> on an M-series Mac it runs under emulation. It works, but the first start is
+> slow — allow SQL Server up to a minute before the catalog API reports healthy.
+> Compose already gates start-up on the health check, so this is a matter of
+> patience rather than configuration.
+
+---
+
+## Architecture
+
+```
+                          ┌─────────────────────────────┐
+                          │   apps/client (React 19)    │
+                          │   Redux Toolkit + RTK Query │
+                          │   :5173 dev · :8080 nginx   │
+                          └──────────┬───────┬──────────┘
+                   screen 1 · GET    │       │   screen 2 · POST
+                                     ▼       ▼
+              ┌──────────────────────────┐  ┌────────────────────────────┐
+              │  apps/catalog-api        │  │  apps/orders-api           │
+              │  .NET 10 Web API         │  │  NestJS 11                 │
+              │  EF Core                 │  │  ports & adapters          │
+              │  :5080                   │  │  :3000                     │
+              └───────────┬──────────────┘  └─────┬─────────────────┬────┘
+                          │                       │  NOSQL_DRIVER   │
+                          ▼                       ▼                 ▼
+                  ┌──────────────┐      ┌─────────────────┐  ┌────────────┐
+                  │  SQL Server  │      │  Elasticsearch  │  │  MongoDB   │
+                  │    :1433     │      │      :9200      │  │   :27017   │
+                  └──────────────┘      └─────────────────┘  └────────────┘
+                                          (default driver)     (alternative)
+```
+
+The two backends share nothing — no database, no library, no deployment unit.
+They are joined only by the browser, which is what the assignment's three-part
+split implies. The contract between all three is pinned in
+[`docs/CONTRACT.md`](docs/CONTRACT.md): DTO shapes, endpoint paths, ports and
+environment variable names live in one file that every component was built
+against, so the wire format is a specification rather than an accident.
+
+### Repository layout
+
+```
+.
+├── docker-compose.yml          the whole local stack
+├── .env.example                compose overrides (ports, passwords, driver)
+├── docs/CONTRACT.md            the shared API + design contract
+├── infra/elasticsearch/
+│   └── orders.mapping.json     the deliverable index mapping
+└── apps/
+    ├── client/                 React + Redux Toolkit SPA
+    ├── catalog-api/            .NET 10 + EF Core + SQL Server
+    └── orders-api/             NestJS + Elasticsearch / MongoDB
+```
+
+Each app has its own README with the detail for that component.
+
+---
+
+## The two screens
+
+### Screen 1 — shopping list
+
+`GET /api/categories` returns every category **with its products embedded**, so
+the whole screen is populated by a single request on mount, which is what
+requirement 1 asks for. Choosing a category enables the product dropdown;
+choosing a product enables the quantity stepper and the *add to cart* button.
+The cart renders beside it and updates immediately on every add.
+
+Alongside the dropdown flow required by the assignment there is a visual product
+grid, because a dropdown-only supermarket is not something anyone would ship.
+Both paths dispatch the same `cart/itemAdded` action, so the required flow is
+fully intact and independently testable.
+
+### Screen 2 — order summary
+
+The checkout form has the three required fields — full name, full address, email
+— each validated on the client and again on the server. Below the form is the
+list of products chosen on screen 1. *Confirm order* POSTs the customer details
+**and the item array** to the orders service, which persists both as one
+document, then the app shows a receipt with the order reference.
+
+---
+
+## Design decisions worth explaining
+
+### The orders service is pluggable at the persistence layer
+
+The assignment allows MongoDB or Elasticsearch and prefers Elasticsearch. Rather
+than choose one and lose the other, `OrdersService` depends on an abstract
+`OrderRepository` port. Two adapters implement it, and a dynamic
+`PersistenceModule` registers exactly one against the `ORDER_REPOSITORY` token
+based on `NOSQL_DRIVER`:
+
+```bash
+NOSQL_DRIVER=elasticsearch   # default, per the assignment's preference
+NOSQL_DRIVER=mongodb         # the entire persistence layer swaps
+```
+
+Nothing above the repository knows which store is live — not the service, not
+the controller, not the client. A shared contract test suite runs against **both**
+adapters and asserts they produce byte-identical `Order` results, so the swap is
+proven behaviour-preserving rather than merely claimed.
+
+### Totals are computed on the server
+
+The client sends quantities and unit prices; it does not send totals. The orders
+service recomputes `lineTotal`, `itemCount` and `totalAmount` itself. A client is
+an untrusted input, and money that a browser can set is money a browser can
+change.
+
+### The Elasticsearch mapping is explicit and strict
+
+`orders.mapping.json` sets `dynamic: "strict"`, so a document with an unexpected
+field is rejected rather than silently inventing a field type. `items` is a
+`nested` type rather than the default object array: without it, Elasticsearch
+flattens the array and a query for "orders containing 2 cartons of milk" would
+match an order containing 2 of something else and a carton of something else
+again. Emails are a `keyword` with a lowercase normalizer so lookups are
+case-insensitive without analysing them as prose. The service creates the index
+from this file at startup if it is absent, and a test asserts the file and the
+embedded fallback copy have not drifted apart.
+
+### The catalog is bilingual at the data layer
+
+Every category and product carries both `nameHe` and `nameEn`. The client picks
+the right one for the active locale, so switching language re-labels the whole
+catalog with no refetch and no second request. Translating a product list in the
+UI layer would have meant either a translation file that drifts from the database
+or a second round trip.
+
+### One stylesheet serves both writing directions
+
+The client uses CSS logical properties throughout — `margin-inline-start` rather
+than `margin-left`, `inset-inline-end` rather than `right`. Switching `dir` on
+`<html>` therefore mirrors the entire layout correctly with no RTL-specific
+stylesheet and no `[dir=rtl]` override sprawl. Only two rules key off direction
+explicitly, both of which are genuinely directional (a dropdown chevron and a
+back arrow). Prices and email inputs are wrapped in `direction: ltr` isolation so
+they do not scramble inside Hebrew text.
+
+### Theme is three-state, not two
+
+Light, dark, and *follow the system*. In system mode the app subscribes to
+`prefers-color-scheme` and re-paints live when the OS changes. An inline script
+in `index.html` applies the persisted choice before first paint, so a reload
+never flashes the wrong palette.
+
+### Client state versus server state
+
+Categories, products and orders live in RTK Query — cached, deduplicated,
+tag-invalidated, never copied into a reducer. Only the cart and the UI
+preferences live in plain slices, because only they are genuinely owned by the
+client. The cart is keyed by `productId` so adding the same product twice
+increments one line rather than duplicating it, and totals are derived with
+memoised selectors so they cannot drift from the items. Cart and preferences are
+persisted to `localStorage` through a listener middleware, and everything read
+back is validated field by field — corrupted storage degrades to an empty cart
+instead of crashing the app.
+
+### Database schema creation
+
+The catalog service calls `EnsureCreatedAsync()` at startup rather than shipping
+a hand-written EF migration, and retries the SQL Server connection with backoff
+because the container takes time to accept connections. The reasoning, and the
+exact command to generate real migrations for a production setup, are in
+[`apps/catalog-api/MIGRATIONS.md`](apps/catalog-api/MIGRATIONS.md).
+
+---
+
+## Configuration
+
+Every value below has a working default; no `.env` file is needed to run the
+stack. See [`docs/CONTRACT.md` §4](docs/CONTRACT.md) for the authoritative list.
+
+### Compose (`.env` at the repo root)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CLIENT_PORT` / `CATALOG_API_PORT` / `ORDERS_API_PORT` | `8080` / `5080` / `3000` | Host ports |
+| `MSSQL_PORT` / `ELASTICSEARCH_PORT` / `MONGODB_PORT` | `1433` / `9200` / `27017` | Database ports |
+| `MSSQL_SA_PASSWORD` | `Your_strong_Passw0rd` | Must meet SQL Server's policy |
+| `NOSQL_DRIVER` | `elasticsearch` | `elasticsearch` \| `mongodb` |
+| `VITE_DEFAULT_LOCALE` | `he` | Initial UI language |
+
+### catalog-api
+
+| Variable | Default |
+|---|---|
+| `ConnectionStrings__CatalogDb` | `Server=localhost,1433;Database=CatalogDb;User Id=sa;Password=Your_strong_Passw0rd;TrustServerCertificate=True;` |
+| `Catalog__AutoMigrate` | `true` |
+| `Catalog__SeedData` | `true` |
+| `Cors__AllowedOrigins__0` | `http://localhost:5173` |
+
+### orders-api
+
+| Variable | Default |
+|---|---|
+| `NOSQL_DRIVER` | `elasticsearch` |
+| `ELASTICSEARCH_NODE` / `ELASTICSEARCH_INDEX` | `http://localhost:9200` / `orders` |
+| `MONGODB_URI` / `MONGODB_DATABASE` / `MONGODB_COLLECTION` | `mongodb://localhost:27017` / `orders` / `orders` |
+| `CORS_ORIGINS` | `http://localhost:5173` |
+
+### client
+
+Vite inlines `import.meta.env` at build time, so these are build-time values.
+
+| Variable | Default |
+|---|---|
+| `VITE_CATALOG_API_URL` | `http://localhost:5080` |
+| `VITE_ORDERS_API_URL` | `http://localhost:3000` |
+| `VITE_DEFAULT_LOCALE` | `he` |
+
+---
+
+## API reference
+
+### Catalog (`http://localhost:5080`)
+
+| Method | Path | Returns |
+|---|---|---|
+| `GET` | `/api/categories` | All categories, each with its active products |
+| `GET` | `/api/categories/{id}` | One category with products, or `404` |
+| `GET` | `/api/products?categoryId=` | Flat product list, optionally filtered |
+| `GET` | `/health` | `{"status":"healthy","database":"connected"}` |
+| `GET` | `/swagger` | Interactive documentation |
+
+Errors are RFC 7807 `application/problem+json`.
+
+### Orders (`http://localhost:3000`)
+
+| Method | Path | Returns |
+|---|---|---|
+| `POST` | `/api/orders` | `201` with the persisted order |
+| `GET` | `/api/orders/{id}` | One order, or `404` |
+| `GET` | `/api/orders?limit=&offset=` | `{ total, items }`, newest first |
+| `GET` | `/health` | `{"status":"ok","driver":"...","store":"connected"}` |
+| `GET` | `/docs` | Interactive documentation |
+
+Placing an order from the command line:
+
+```bash
+curl -X POST http://localhost:3000/api/orders \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "customer": {
+      "fullName": "ישראל ישראלי",
+      "address": "הרצל 10, תל אביב",
+      "email": "israel@example.com"
+    },
+    "items": [{
+      "productId": 101, "categoryId": 1,
+      "nameEn": "Milk 3%", "nameHe": "חלב 3%",
+      "unit": "carton", "quantity": 2, "unitPrice": 6.90
+    }],
+    "locale": "he"
+  }'
+```
+
+---
+
+## Tests
+
+```bash
+cd apps/client      && npm test            # 289 tests, 100% statements/lines
+cd apps/orders-api  && npm test            # 300 unit tests, 100% statements
+cd apps/orders-api  && npm run test:e2e    # 31 end-to-end tests
+cd apps/catalog-api && dotnet test         # 54 tests
+```
+
+Coverage thresholds are enforced in the test configuration of both Node
+projects, so a drop in coverage fails the run rather than producing a warning
+nobody reads.
+
+**Client** — Vitest, Testing Library and MSW. Components render inside the real
+provider stack (real store, real i18next, real router); only the network is
+mocked, at the HTTP boundary. `src/App.test.tsx` walks the whole journey — load
+the catalog, add products through both flows, fill the form, submit — and
+asserts on the exact payload the orders API received. A dedicated suite guards
+the translation bundles: every key must exist in both languages, no string may
+be empty, and interpolation placeholders must match, so a forgotten Hebrew
+translation is a failing test rather than a `missingKey` in production.
+
+**Orders API** — Jest. Table-driven DTO validation, totals arithmetic including
+rounding edges, the index bootstrap's create-if-absent branches, and a shared
+contract suite executed against both repository adapters. The e2e suite runs the
+real Nest application over supertest with an in-memory repository substituted at
+the DI token, so it needs no running database.
+
+**Catalog API** — xUnit with FluentAssertions, Moq and the EF Core in-memory
+provider, covering the service, mappings, seeder, both controllers (200 and 404
+paths) and the endpoints end-to-end through `WebApplicationFactory`.
+
+---
+
+## Troubleshooting
+
+**The client loads but shows "the catalog service could not be reached".**
+The catalog API is not up. `docker compose logs catalog-api`. The usual cause is
+SQL Server still starting — the API retries for about 80 seconds and reports
+`503` on `/health` in the meantime rather than crash-looping.
+
+**Elasticsearch exits immediately.**
+Almost always the host's `vm.max_map_count`. On Linux:
+`sudo sysctl -w vm.max_map_count=262144`. On Docker Desktop the default is
+already sufficient. Also give Docker at least 4 GB of memory.
+
+**A port is already in use.**
+Copy `.env.example` to `.env` and change the offending `*_PORT`. If you change
+`CATALOG_API_PORT` or `ORDERS_API_PORT` you must rebuild the client
+(`docker compose --profile apps up -d --build client`), because those URLs are
+compiled into the bundle.
+
+**Orders succeed but `GET /api/orders` looks empty.**
+Check which driver is live: `curl http://localhost:3000/health`. Orders written
+under one driver are not visible under the other — they are different databases.
+
+---
+
+## Notes for the reviewer
+
+- `docs/CONTRACT.md` is the shared specification all three components were built
+  against; it is the fastest way to see the whole system's surface at once.
+- The Elasticsearch mapping deliverable is `infra/elasticsearch/orders.mapping.json`.
+- The `.NET`/SQL Server half and the Node/NoSQL half are genuinely independent:
+  either can be stopped and the other keeps serving its screen.
+- The client has no external network dependency at runtime — no CDN, no web
+  fonts, no analytics. It renders correctly offline once loaded.

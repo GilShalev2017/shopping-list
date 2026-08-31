@@ -1,0 +1,139 @@
+{
+  "app": {
+    "title": "רשימת קניות",
+    "tagline": "בוחרים קטגוריה, בוחרים מוצר, ממלאים את הסל.",
+    "skipToContent": "דילוג לתוכן הראשי"
+  },
+  "nav": {
+    "shopping": "רשימת קניות",
+    "checkout": "סיכום ההזמנה",
+    "backToShopping": "חזרה לרשימת הקניות"
+  },
+  "theme": {
+    "label": "ערכת נושא",
+    "light": "בהיר",
+    "dark": "כהה",
+    "system": "לפי המערכת",
+    "switchTo": "החלפת ערכת נושא (כעת: {{mode}})"
+  },
+  "language": {
+    "label": "שפה",
+    "he": "עברית",
+    "en": "English",
+    "switchTo": "החלפת שפה ל{{language}}"
+  },
+  "picker": {
+    "heading": "הוספת מוצר",
+    "category": "קטגוריה",
+    "categoryPlaceholder": "בחר קטגוריה",
+    "product": "מוצר",
+    "productPlaceholder": "בחר מוצר",
+    "productDisabledHint": "יש לבחור קטגוריה תחילה",
+    "quantity": "כמות",
+    "decrease": "הפחתת כמות",
+    "increase": "הגדלת כמות",
+    "add": "הוסף מוצר לסל",
+    "addAria": "הוספת {{product}} לסל",
+    "inCart": "{{count}} בסל",
+    "noProducts": "אין כרגע מוצרים בקטגוריה הזו."
+  },
+  "products": {
+    "heading": "{{category}}",
+    "headingAll": "עיון במוצרים",
+    "browseHint": "או בחרו ישירות מהמדף",
+    "empty": "אין מה להציג כאן עדיין.",
+    "emptyHint": "בחרו קטגוריה למעלה כדי לראות את המוצרים שלה.",
+    "quickAdd": "הוספה מהירה של {{product}}",
+    "perUnit": "ל{{unit}}"
+  },
+  "unit": {
+    "unit": "יחידה",
+    "kg": "ק\"ג",
+    "pack": "חבילה",
+    "bottle": "בקבוק",
+    "carton": "קרטון"
+  },
+  "cart": {
+    "heading": "הסל שלך",
+    "empty": "הסל ריק.",
+    "emptyHint": "מוצרים שתוסיפו יופיעו כאן.",
+    "lineTotal": "סה\"כ לשורה",
+    "remove": "הסרת {{product}}",
+    "quantityFor": "כמות עבור {{product}}",
+    "items_one": "פריט אחד",
+    "items_other": "{{count}} פריטים",
+    "lines_one": "שורה אחת",
+    "lines_other": "{{count}} שורות",
+    "subtotal": "סכום ביניים",
+    "total": "סה\"כ",
+    "clear": "ניקוי הסל",
+    "continue": "המשך הזמנה",
+    "added": "{{product}} נוסף לסל",
+    "items_two": "שני פריטים",
+    "items_many": "{{count}} פריטים",
+    "lines_two": "שתי שורות",
+    "lines_many": "{{count}} שורות"
+  },
+  "checkout": {
+    "heading": "סיכום ההזמנה",
+    "subheading": "מלאו את הפרטים ואשרו את ההזמנה.",
+    "detailsHeading": "הפרטים שלך",
+    "itemsHeading": "המוצרים בהזמנה",
+    "fullName": "שם פרטי ומשפחה",
+    "fullNamePlaceholder": "לדוגמה: דנה לוי",
+    "address": "כתובת מלאה",
+    "addressPlaceholder": "רחוב, מספר, עיר",
+    "email": "דואר אלקטרוני",
+    "emailPlaceholder": "you@example.com",
+    "required": "שדה חובה",
+    "submit": "אשר הזמנה",
+    "submitting": "שולח…",
+    "emptyCart": "אין עדיין מה להזמין.",
+    "emptyCartHint": "הוסיפו קודם מוצרים לסל.",
+    "goShopping": "מעבר לרשימת הקניות"
+  },
+  "validation": {
+    "fullNameRequired": "יש להזין שם פרטי ושם משפחה.",
+    "fullNameTooShort": "השם חייב להכיל לפחות 2 תווים.",
+    "fullNameTwoWords": "יש להזין גם שם פרטי וגם שם משפחה.",
+    "addressRequired": "יש להזין כתובת מלאה.",
+    "addressTooShort": "הכתובת חייבת להכיל לפחות 5 תווים.",
+    "emailRequired": "יש להזין כתובת דואר אלקטרוני.",
+    "emailInvalid": "יש להזין כתובת דואר אלקטרוני תקינה.",
+    "summary_one": "שדה אחד דורש תיקון.",
+    "summary_other": "{{count}} שדות דורשים תיקון.",
+    "summary_two": "שני שדות דורשים תיקון.",
+    "summary_many": "{{count}} שדות דורשים תיקון."
+  },
+  "confirmation": {
+    "heading": "ההזמנה אושרה",
+    "thanks": "תודה, {{name}}!",
+    "reference": "מספר הזמנה",
+    "sentTo": "סיכום ההזמנה נשמר עבור {{email}}.",
+    "deliverTo": "משלוח אל",
+    "placedAt": "בוצעה בתאריך",
+    "itemsHeading": "מה הזמנתם",
+    "newOrder": "התחלת הזמנה חדשה",
+    "loading": "טוען את ההזמנה…",
+    "notFound": "לא הצלחנו למצוא את ההזמנה.",
+    "notFoundHint": "ייתכן שמספר ההזמנה שגוי, או ששירות ההזמנות אינו זמין."
+  },
+  "status": {
+    "loading": "טוען…",
+    "loadingCatalog": "טוען את הקטלוג…",
+    "errorHeading": "משהו השתבש",
+    "catalogError": "לא ניתן להתחבר לשירות הקטלוג.",
+    "catalogErrorHint": "ודאו ששירות הקטלוג רץ בכתובת {{url}}.",
+    "orderError": "לא ניתן לשלוח את ההזמנה.",
+    "orderErrorHint": "ודאו ששירות ההזמנות רץ בכתובת {{url}}.",
+    "retry": "נסו שוב"
+  },
+  "common": {
+    "currency": "₪",
+    "close": "סגירה"
+  },
+  "footer": {
+    "builtWith": "React · Redux Toolkit · ‏.NET 10 · NestJS",
+    "screens": "מסך ראשון: רשימת קניות · מסך שני: סיכום ההזמנה"
+  }
+}

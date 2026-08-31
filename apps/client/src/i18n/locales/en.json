@@ -1,0 +1,133 @@
+{
+  "app": {
+    "title": "Shopping List",
+    "tagline": "Pick a category, choose a product, fill your cart.",
+    "skipToContent": "Skip to main content"
+  },
+  "nav": {
+    "shopping": "Shopping list",
+    "checkout": "Order summary",
+    "backToShopping": "Back to the shopping list"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "switchTo": "Switch theme (currently: {{mode}})"
+  },
+  "language": {
+    "label": "Language",
+    "he": "עברית",
+    "en": "English",
+    "switchTo": "Switch language to {{language}}"
+  },
+  "picker": {
+    "heading": "Add a product",
+    "category": "Category",
+    "categoryPlaceholder": "Select a category",
+    "product": "Product",
+    "productPlaceholder": "Select a product",
+    "productDisabledHint": "Select a category first",
+    "quantity": "Quantity",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "add": "Add to cart",
+    "addAria": "Add {{product}} to the cart",
+    "inCart": "{{count}} in cart",
+    "noProducts": "This category has no products right now."
+  },
+  "products": {
+    "heading": "{{category}}",
+    "headingAll": "Browse products",
+    "browseHint": "Or pick straight from the shelf",
+    "empty": "Nothing to show here yet.",
+    "emptyHint": "Choose a category above to see its products.",
+    "quickAdd": "Quick add {{product}}",
+    "perUnit": "per {{unit}}"
+  },
+  "unit": {
+    "unit": "unit",
+    "kg": "kg",
+    "pack": "pack",
+    "bottle": "bottle",
+    "carton": "carton"
+  },
+  "cart": {
+    "heading": "Your cart",
+    "empty": "Your cart is empty.",
+    "emptyHint": "Products you add will appear here.",
+    "lineTotal": "Line total",
+    "remove": "Remove {{product}}",
+    "quantityFor": "Quantity for {{product}}",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "lines_one": "{{count}} line",
+    "lines_other": "{{count}} lines",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "clear": "Clear cart",
+    "continue": "Continue to order",
+    "added": "{{product}} added to the cart"
+  },
+  "checkout": {
+    "heading": "Order summary",
+    "subheading": "Fill in your details and confirm the order.",
+    "detailsHeading": "Your details",
+    "itemsHeading": "Products in this order",
+    "fullName": "First and last name",
+    "fullNamePlaceholder": "e.g. Dana Levi",
+    "address": "Full address",
+    "addressPlaceholder": "Street, number, city",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "required": "Required",
+    "submit": "Confirm order",
+    "submitting": "Sending…",
+    "emptyCart": "There is nothing to order yet.",
+    "emptyCartHint": "Add some products first.",
+    "goShopping": "Go to the shopping list"
+  },
+  "validation": {
+    "fullNameRequired": "Please enter your first and last name.",
+    "fullNameTooShort": "Name must be at least 2 characters.",
+    "fullNameTwoWords": "Please enter both a first and a last name.",
+    "addressRequired": "Please enter your full address.",
+    "addressTooShort": "Address must be at least 5 characters.",
+    "emailRequired": "Please enter your email address.",
+    "emailInvalid": "Please enter a valid email address.",
+    "summary_one": "{{count}} field needs attention.",
+    "summary_other": "{{count}} fields need attention."
+  },
+  "confirmation": {
+    "heading": "Order confirmed",
+    "thanks": "Thank you, {{name}}!",
+    "reference": "Order reference",
+    "sentTo": "A summary was recorded for {{email}}.",
+    "deliverTo": "Delivering to",
+    "placedAt": "Placed at",
+    "itemsHeading": "What you ordered",
+    "newOrder": "Start a new order",
+    "loading": "Loading your order…",
+    "notFound": "We could not find that order.",
+    "notFoundHint": "The reference may be wrong, or the order service may be unavailable."
+  },
+  "status": {
+    "loading": "Loading…",
+    "loadingCatalog": "Loading the catalog…",
+    "errorHeading": "Something went wrong",
+    "catalogError": "The catalog service could not be reached.",
+    "catalogErrorHint": "Make sure the catalog API is running on {{url}}.",
+    "orderError": "The order could not be sent.",
+    "orderErrorHint": "Make sure the orders API is running on {{url}}.",
+    "retry": "Try again"
+  },
+  "common": {
+    "currency": "₪",
+    "close": "Close"
+  },
+  "footer": {
+    "builtWith": "React · Redux Toolkit · .NET 10 · NestJS",
+    "screens": "Screen 1: shopping list · Screen 2: order summary"
+  }
+}

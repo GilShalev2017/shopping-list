@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.suo
+**/TestResults/
+**/node_modules/
+Dockerfile
+.dockerignore
+README.md
+MIGRATIONS.md
+tests/
