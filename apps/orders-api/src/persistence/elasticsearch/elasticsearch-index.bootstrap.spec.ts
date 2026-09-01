@@ -140,7 +140,9 @@ describe('resolveOrdersMappingPath', () => {
   });
 
   it('defaults to __dirname and process.env when called with no arguments', () => {
-    expect(toPosix(resolveOrdersMappingPath() as string)).toContain(ORDERS_MAPPING_RELATIVE_PATH);
+    expect(toPosix(resolveOrdersMappingPath() as string)).toContain(
+      ORDERS_MAPPING_RELATIVE_PATH,
+    );
   });
 });
 
