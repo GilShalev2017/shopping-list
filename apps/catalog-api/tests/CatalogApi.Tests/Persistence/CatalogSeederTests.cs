@@ -12,6 +12,16 @@ namespace CatalogApi.Tests.Persistence;
 
 public class CatalogSeederTests
 {
+    private static readonly string[] HebrewCategoryNames =
+    [
+        "dairy", "fruits-vegetables", "meat-fish", "bakery", "beverages", "snacks-sweets"
+    ];
+
+    private static readonly string[] SeededProductNames =
+    [
+        "חלב 3%", "קוטג' 5%", "שמנת חמוצה 15%"
+    ];
+
     private static bool ContainsHebrew(string value) =>
         value.Any(c => c >= '\u0590' && c <= '\u05FF');
 
@@ -67,10 +77,7 @@ public class CatalogSeederTests
     {
         IReadOnlyList<Category> catalog = CatalogSeeder.BuildCatalog();
 
-        catalog.Select(c => c.Slug).Should().Contain(new[]
-        {
-            "dairy", "fruits-vegetables", "meat-fish", "bakery", "beverages", "snacks-sweets"
-        });
+        catalog.Select(c => c.Slug).Should().Contain(HebrewCategoryNames);
 
         catalog.Select(c => c.SortOrder).Should().OnlyHaveUniqueItems();
         catalog.Select(c => c.SortOrder).Should().BeInAscendingOrder();
@@ -99,7 +106,7 @@ public class CatalogSeederTests
     [Fact]
     public void BuildCatalog_EveryProductIsFullyPopulated()
     {
-        IReadOnlyList<Product> products = CatalogSeeder.BuildCatalog()
+        List<Product> products = CatalogSeeder.BuildCatalog()
             .SelectMany(c => c.Products)
             .ToList();
 
@@ -117,7 +124,7 @@ public class CatalogSeederTests
             product.PricePerUnit.Should().BeGreaterThan(0m);
             product.PricePerUnit.Should().BeLessThan(1000m);
             product.IsActive.Should().BeTrue();
-            Enum.IsDefined(typeof(ProductUnit), product.Unit).Should().BeTrue();
+            Enum.IsDefined<ProductUnit>(product.Unit).Should().BeTrue();
         }
     }
 
@@ -138,7 +145,7 @@ public class CatalogSeederTests
             .Select(p => p.NameHe)
             .ToList();
 
-        foreach (string expected in new[] { "חלב 3%", "קוטג' 5%", "שמנת חמוצה 15%" })
+        foreach (string expected in SeededProductNames)
         {
             hebrewNames.Should().Contain(expected);
         }

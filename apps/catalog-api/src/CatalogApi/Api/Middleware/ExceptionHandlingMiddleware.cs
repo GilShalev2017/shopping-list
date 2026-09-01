@@ -50,7 +50,10 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (NotFoundException ex)
         {
-            _logger.LogInformation("Resource not found: {Message}", ex.Message);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(ex, "Resource not found.");
+            }
 
             await WriteProblemAsync(
                 context,
@@ -70,7 +73,10 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (ArgumentException ex) when (ex is not ArgumentNullException)
         {
-            _logger.LogWarning(ex, "Bad request.");
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex, "Bad request.");
+            }
 
             await WriteProblemAsync(
                 context,
@@ -81,8 +87,11 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception while processing {Method} {Path}.",
-                context.Request.Method, context.Request.Path);
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Unhandled exception while processing {Method} {Path}.",
+                    context.Request.Method, context.Request.Path);
+            }
 
             await WriteProblemAsync(
                 context,

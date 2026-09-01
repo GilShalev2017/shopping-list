@@ -6,6 +6,7 @@
   "description": "React + Redux Toolkit client for the shopping list assignment (screens 1 and 2)",
   "scripts": {
     "dev": "vite",
+    "start": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",

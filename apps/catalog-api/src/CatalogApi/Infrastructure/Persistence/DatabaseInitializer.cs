@@ -79,9 +79,8 @@ public sealed class DatabaseInitializer
                         .ConfigureAwait(false);
 
                     _logger.LogInformation(
-                        created
-                            ? "Catalog schema created (attempt {Attempt})."
-                            : "Catalog schema already present (attempt {Attempt}).",
+                        "Catalog schema {State} (attempt {Attempt}).",
+                        created ? "created" : "already present",
                         attempt);
                 }
 
@@ -92,9 +91,8 @@ public sealed class DatabaseInitializer
                         .ConfigureAwait(false);
 
                     _logger.LogInformation(
-                        seeded
-                            ? "Catalog seed data inserted."
-                            : "Catalog seed data skipped, categories already exist.");
+                        "Catalog seed data {State}.",
+                        seeded ? "inserted" : "skipped, categories already exist");
                 }
 
                 return;
@@ -116,12 +114,15 @@ public sealed class DatabaseInitializer
 
                 TimeSpan delay = TimeSpan.FromSeconds(Math.Min(15, attempt * 2));
 
-                _logger.LogWarning(
-                    ex,
-                    "Database not ready (attempt {Attempt}/{Attempts}). Retrying in {Delay}s.",
-                    attempt,
-                    MaxAttempts,
-                    delay.TotalSeconds);
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Database not ready (attempt {Attempt}/{Attempts}). Retrying in {Delay}s.",
+                        attempt,
+                        MaxAttempts,
+                        delay.TotalSeconds);
+                }
 
                 await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             }

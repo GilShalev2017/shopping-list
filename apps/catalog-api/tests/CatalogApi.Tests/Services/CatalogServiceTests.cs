@@ -15,6 +15,10 @@ namespace CatalogApi.Tests.Services;
 
 public class CatalogServiceTests
 {
+    private static readonly string[] DairyProductSlugs = ["milk-3", "cottage-cheese"];
+
+    private static readonly string[] ProductSlugs = ["milk-3", "cottage-cheese", "challah"];
+
     [Fact]
     public async Task GetCategoriesAsync_ReturnsCategoriesOrderedBySortOrder()
     {
@@ -39,8 +43,8 @@ public class CatalogServiceTests
         CategoryDto dairy = result.Single(c => c.Slug == "dairy");
         CategoryDto bakery = result.Single(c => c.Slug == "bakery");
 
-        dairy.Products.Select(p => p.Slug).Should().BeEquivalentTo(new[] { "milk-3", "cottage-cheese" });
-        bakery.Products.Select(p => p.Slug).Should().BeEquivalentTo(new[] { "challah" });
+        dairy.Products.Select(p => p.Slug).Should().BeEquivalentTo(DairyProductSlugs);
+        bakery.Products.Select(p => p.Slug).Should().BeEquivalentTo(["challah"]);
         dairy.Products.Should().OnlyContain(p => p.CategoryId == dairy.Id);
         bakery.Products.Should().OnlyContain(p => p.CategoryId == bakery.Id);
     }
@@ -155,7 +159,7 @@ public class CatalogServiceTests
         IReadOnlyList<ProductDto> result = await service.GetProductsAsync(null, CancellationToken.None);
 
         result.Should().HaveCount(3);
-        result.Select(p => p.Slug).Should().BeEquivalentTo(new[] { "milk-3", "cottage-cheese", "challah" });
+        result.Select(p => p.Slug).Should().BeEquivalentTo(ProductSlugs);
         result.Should().OnlyContain(p => p.IsActive);
     }
 

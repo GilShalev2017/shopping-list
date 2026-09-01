@@ -207,7 +207,8 @@ docker run --rm -p 3000:3000 orders-api
 cd apps/client
 
 npm install                 # or `npm ci`
-npm run dev                 # dev server with HMR → http://localhost:5173
+npm start                   # dev server with HMR → http://localhost:5173
+npm run dev                 # identical - Vite's own name for it
 npm run build               # type-check then bundle → dist/
 npm run preview             # serve the built bundle → http://localhost:4173
 

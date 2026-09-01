@@ -22,7 +22,7 @@ service for screen 2.
 ```bash
 npm install
 cp .env.example .env    # optional; the defaults already point at localhost
-npm run dev             # http://localhost:5173
+npm start               # http://localhost:5173  (`npm run dev` is the same)
 ```
 
 The two APIs must be reachable. From the repository root, `docker compose up -d`
@@ -30,7 +30,8 @@ starts the databases and `docker compose --profile apps up -d` starts everything
 
 | Script            | Does                                       |
 | ----------------- | ------------------------------------------ |
-| `npm run dev`     | Dev server with HMR on port 5173           |
+| `npm start`       | Dev server with HMR on port 5173           |
+| `npm run dev`     | The same thing - Vite's conventional name  |
 | `npm run build`   | Type-check then emit `dist/`               |
 | `npm run preview` | Serve the built bundle on 4173             |
 | `npm run lint`    | ESLint (flat config, type-aware rules)     |

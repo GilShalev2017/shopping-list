@@ -212,10 +212,11 @@ public sealed class CatalogEndpointsTests : IClassFixture<CatalogApiFactory>
             await client.GetFromJsonAsync<List<ProductDto>>("/api/products", JsonOptions);
 
         products.Should().NotBeNull();
-        products!.Count.Should().BeGreaterThanOrEqualTo(30);
-        products.Should().OnlyContain(p => p.IsActive);
-        products.Should().OnlyContain(p => p.PricePerUnit > 0m);
-        products.Select(p => p.Slug).Should().OnlyHaveUniqueItems();
+        List<ProductDto> actualProducts = products!;
+        actualProducts.Count.Should().BeGreaterThanOrEqualTo(30);
+        actualProducts.Should().OnlyContain(p => p.IsActive);
+        actualProducts.Should().OnlyContain(p => p.PricePerUnit > 0m);
+        actualProducts.Select(p => p.Slug).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]
@@ -233,9 +234,10 @@ public sealed class CatalogEndpointsTests : IClassFixture<CatalogApiFactory>
             JsonOptions);
 
         products.Should().NotBeNull();
-        products!.Should().NotBeEmpty();
-        products.Should().OnlyContain(p => p.CategoryId == dairy.Id);
-        products.Select(p => p.Id).Should().BeEquivalentTo(dairy.Products.Select(p => p.Id));
+        List<ProductDto> actualProducts = products ?? [];
+        actualProducts.Should().NotBeEmpty();
+        actualProducts.Should().OnlyContain(p => p.CategoryId == dairy.Id);
+        actualProducts.Select(p => p.Id).Should().BeEquivalentTo(dairy.Products.Select(p => p.Id));
     }
 
     [Fact]

@@ -41,6 +41,7 @@
       the target-typed `new()` in SwaggerDoc side-steps that entirely.)
     -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
   </ItemGroup>
 
   <ItemGroup>
