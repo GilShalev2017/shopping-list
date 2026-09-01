@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 
 import type { Client } from '@elastic/elasticsearch';
 import { Logger } from '@nestjs/common';
@@ -15,6 +15,10 @@ import {
 } from './elasticsearch-index.bootstrap';
 
 const INDEX = 'orders-test';
+
+// ORDERS_MAPPING_RELATIVE_PATH is POSIX-style; resolve() returns
+// backslash-joined paths on Windows, so compare with slashes normalised.
+const toPosix = (value: string): string => value.split(sep).join('/');
 
 function createClient(overrides: { exists?: jest.Mock; create?: jest.Mock }): {
   client: Client;
@@ -111,7 +115,7 @@ describe('resolveOrdersMappingPath', () => {
   it('finds infra/elasticsearch/orders.mapping.json by walking up from src/', () => {
     const path = resolveOrdersMappingPath(__dirname, {});
     expect(path).not.toBeNull();
-    expect(path).toContain(ORDERS_MAPPING_RELATIVE_PATH);
+    expect(toPosix(path as string)).toContain(ORDERS_MAPPING_RELATIVE_PATH);
   });
 
   it('honours ORDERS_MAPPING_PATH when the file exists', () => {
@@ -123,7 +127,7 @@ describe('resolveOrdersMappingPath', () => {
     const path = resolveOrdersMappingPath(__dirname, {
       ORDERS_MAPPING_PATH: '/nowhere/orders.mapping.json',
     });
-    expect(path).toContain(ORDERS_MAPPING_RELATIVE_PATH);
+    expect(toPosix(path as string)).toContain(ORDERS_MAPPING_RELATIVE_PATH);
   });
 
   it('returns null when nothing is found up the tree', () => {
@@ -136,7 +140,7 @@ describe('resolveOrdersMappingPath', () => {
   });
 
   it('defaults to __dirname and process.env when called with no arguments', () => {
-    expect(resolveOrdersMappingPath()).toContain(ORDERS_MAPPING_RELATIVE_PATH);
+    expect(toPosix(resolveOrdersMappingPath() as string)).toContain(ORDERS_MAPPING_RELATIVE_PATH);
   });
 });
 
@@ -149,7 +153,7 @@ describe('loadOrdersIndexDefinition', () => {
     );
 
     expect(source).toBe('file');
-    expect(path).toContain(ORDERS_MAPPING_RELATIVE_PATH);
+    expect(toPosix(path as string)).toContain(ORDERS_MAPPING_RELATIVE_PATH);
     expect(definition).toEqual(
       JSON.parse(readFileSync(path as string, 'utf8')) as unknown,
     );

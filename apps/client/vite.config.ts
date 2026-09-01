@@ -26,6 +26,10 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: true,
     restoreMocks: true,
+    // Vitest v4 narrowed `restoreMocks` to vi.spyOn spies only, so plain
+    // vi.fn() mocks (e.g. the module-scoped `navigate` mock) no longer get
+    // their call history cleared between tests. clearMocks restores that.
+    clearMocks: true,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
