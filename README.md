@@ -13,6 +13,27 @@ Everything runs locally with Docker Compose. The Elasticsearch index mapping the
 assignment asks for is at
 [`infra/elasticsearch/orders.mapping.json`](infra/elasticsearch/orders.mapping.json).
 
+### Screens
+
+Both screens, both themes, both languages. Layout uses CSS logical properties
+throughout, so one stylesheet serves right-to-left Hebrew and left-to-right
+English — nothing is mirrored by hand, and no direction-specific rules exist.
+
+| Screen 1 — Hebrew, dark | Screen 1 — English, light |
+|---|---|
+| ![Screen 1 in Hebrew with the dark theme: category chips, product grid and a populated cart](docs/screenshots/01-screen1-he-dark.png) | ![The same screen in English with the light theme, laid out left-to-right](docs/screenshots/02-screen1-en-light.png) |
+
+**Screen 2 — the order form.** Three required fields plus the chosen products,
+shown here right-to-left.
+
+![The checkout screen in Hebrew: customer details on one side, the order summary and total on the other](docs/screenshots/03-checkout-he-dark.png)
+
+**Order confirmed.** Rendered from the orders service response — the reference
+and the total are computed server-side, never sent by the client.
+
+![The confirmation screen showing the order reference, delivery address and every line item](docs/screenshots/04-confirmation-en-light.png)
+
+
 ### Documentation
 
 | Document | What it covers |

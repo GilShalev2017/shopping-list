@@ -133,7 +133,7 @@
     "close": "סגירה"
   },
   "footer": {
-    "builtWith": "React · Redux Toolkit · ‏.NET 10 · NestJS",
+    "builtWith": "React · Redux Toolkit · ⁦.NET 10⁩ · NestJS",
     "screens": "מסך ראשון: רשימת קניות · מסך שני: סיכום ההזמנה"
   }
 }
