@@ -30,7 +30,12 @@ COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
+# 127.0.0.1 rather than "localhost": busybox wget resolves localhost to ::1
+# first inside the container, so a hostname here makes the check depend on
+# whether nginx happens to have an IPv6 listener. Addressing the loopback
+# literally removes the ambiguity, and the page must actually contain the
+# React mount point rather than merely return 200.
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=5 \
-  CMD wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1
+  CMD wget -qO- http://127.0.0.1/ 2>/dev/null | grep -q 'id="root"' || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
