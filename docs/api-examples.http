@@ -199,10 +199,17 @@ Content-Type: application/json
   }
 }
 
-### The same query WITHOUT `nested` — this is what a plain object array would do.
-### It matches an order that has *some* carton and *some* line of quantity 2,
-### even if they are different products. Run both against an order containing
-### 2 kg of bananas and 1 carton of milk to see them disagree.
+### The same query WITHOUT the `nested` wrapper. Run it and it returns ZERO hits.
+###
+### That is not a near miss, it is the point: once a field is mapped as `nested`
+### its children are stored as separate hidden documents and become invisible to
+### ordinary queries. The only way in is through a `nested` query.
+###
+### The over-matching failure — an order matching because it contains *some*
+### carton and, separately, *some* line of quantity 2 — is what a plain `object`
+### mapping would do, because it flattens the array into parallel lists of values
+### and forgets which value belonged to which item. That is the bug `nested`
+### exists to prevent; this query shows the field is genuinely nested.
 POST {{elastic}}/{{index}}/_search?pretty
 Content-Type: application/json
 
