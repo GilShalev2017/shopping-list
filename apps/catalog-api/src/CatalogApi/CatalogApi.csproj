@@ -4,6 +4,24 @@
     <RootNamespace>CatalogApi</RootNamespace>
     <AssemblyName>CatalogApi</AssemblyName>
     <UserSecretsId>catalog-api-shopping-list</UserSecretsId>
+
+    <!--
+      The XML documentation file is the source of every summary, parameter text and
+      example shown in Swagger UI (Program.cs feeds it to SwaggerGen). It is emitted
+      next to CatalogApi.dll as CatalogApi.xml and is carried into `dotnet publish`
+      output automatically, so the Docker image ships it too.
+
+      This deliberately overrides GenerateDocumentationFile=false from
+      Directory.Build.props: Directory.Build.props is imported before this file, so
+      the value set here wins, and it wins for this project only - the test project
+      keeps the repo default.
+
+      1591 = "missing XML comment for publicly visible type or member". Documenting
+      every member is not the point; documenting the API surface is. (The repo-wide
+      NoWarn already lists CS1591; repeating it here keeps this project self-contained.)
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,10 +32,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <!--
-      Swashbuckle 10.x is the line that targets net10.0 directly. Only the
-      parameterless AddSwaggerGen() / UseSwagger() / UseSwaggerUI() surface is
-      used here, which is unchanged across 7.x-10.x, so the version can be
-      moved either way without touching Program.cs.
+      Swashbuckle 10.x is the line that targets net10.0 directly. Program.cs sticks
+      to the long-stable configuration surface - SwaggerDoc / IncludeXmlComments on
+      SwaggerGenOptions, SwaggerEndpoint / RoutePrefix / DocumentTitle /
+      DisplayRequestDuration on SwaggerUIOptions - and never names a Microsoft.OpenApi
+      type in a using directive, so the version can be moved across 7.x-10.x without
+      touching it. (Microsoft.OpenApi renamespaced its models between those majors;
+      the target-typed `new()` in SwaggerDoc side-steps that entirely.)
     -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
   </ItemGroup>

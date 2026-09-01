@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { renderWithProviders } from '@/test/renderWithProviders';
 import { banana, cottage, makeCartItem, makeCartState, milk, uiState } from '@/test/fixtures';
+import { mockTruncation } from '@/test/truncation';
 import { CartPanel } from './CartPanel';
 
 const navigate = vi.fn();
@@ -137,5 +138,89 @@ describe('CartPanel', () => {
 
     expect(screen.getByTestId(`cart-line-${banana.id}`)).toHaveTextContent('בננות');
     expect(screen.getByTestId('continue-to-order')).toHaveTextContent('המשך הזמנה');
+  });
+});
+
+describe('CartPanel — tooltip for clipped product names', () => {
+  const longName = 'Organic semi-skimmed milk 3% in a one litre carton';
+
+  const renderWithName = () =>
+    renderWithProviders(<CartPanel />, {
+      preloadedState: {
+        cart: makeCartState([makeCartItem({ nameEn: longName, quantity: 1 })]),
+        ui: uiState('en'),
+      },
+    });
+
+  it('offers the full name on hover when the label is clipped', async () => {
+    mockTruncation(true);
+    const { user } = renderWithName();
+
+    expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
+
+    await user.hover(screen.getByTestId(`cart-line-label-${milk.id}`));
+
+    expect(screen.getByTestId('tooltip')).toHaveTextContent(longName);
+  });
+
+  it('hides the tooltip again when the pointer leaves', async () => {
+    mockTruncation(true);
+    const { user } = renderWithName();
+    const label = screen.getByTestId(`cart-line-label-${milk.id}`);
+
+    await user.hover(label);
+    expect(screen.getByTestId('tooltip')).toBeInTheDocument();
+
+    await user.unhover(label);
+    expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('shows the tooltip when the emoji is hovered, not just the text', async () => {
+    mockTruncation(true);
+    const { user } = renderWithName();
+
+    const emoji = screen.getByTestId(`cart-line-${milk.id}`).querySelector('[aria-hidden="true"]');
+    await user.hover(emoji as HTMLElement);
+
+    expect(screen.getByTestId('tooltip')).toHaveTextContent(longName);
+  });
+
+  it('does not offer a tooltip when the name fits', async () => {
+    mockTruncation(false);
+    const { user } = renderWithProviders(<CartPanel />, {
+      preloadedState: {
+        cart: makeCartState([makeCartItem({ quantity: 1 })]),
+        ui: uiState('en'),
+      },
+    });
+
+    // With no tooltip the trigger wrapper is not even rendered with its testid.
+    expect(screen.queryByTestId(`cart-line-label-${milk.id}`)).not.toBeInTheDocument();
+
+    await user.hover(screen.getByText('Milk 3%'));
+    expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('shows the Hebrew name in the tooltip when the locale is Hebrew', async () => {
+    mockTruncation(true);
+    const { user } = renderWithProviders(<CartPanel />, {
+      preloadedState: {
+        cart: makeCartState([makeCartItem({ quantity: 1 })]),
+        ui: uiState('he'),
+      },
+    });
+
+    await user.hover(screen.getByTestId(`cart-line-label-${milk.id}`));
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('חלב 3%');
+  });
+
+  it('keeps the row controls working while a tooltip is open', async () => {
+    mockTruncation(true);
+    const { user, store } = renderWithName();
+
+    await user.hover(screen.getByTestId(`cart-line-label-${milk.id}`));
+    await user.click(screen.getByTestId(`cart-remove-${milk.id}`));
+
+    expect(store.getState().cart.ids).toEqual([]);
   });
 });

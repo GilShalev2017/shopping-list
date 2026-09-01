@@ -50,6 +50,12 @@ services:
       xpack.security.http.ssl.enabled: "false"
       ES_JAVA_OPTS: -Xms512m -Xmx512m
       cluster.routing.allocation.disk.threshold_enabled: "false"
+      # Required by the browser-based Elasticvue viewer, which talks to the
+      # cluster directly from the page rather than through a server.
+      http.cors.enabled: "true"
+      http.cors.allow-origin: "*"
+      http.cors.allow-headers: X-Requested-With,Content-Type,Content-Length,Authorization
+      http.cors.allow-credentials: "true"
     ulimits:
       memlock: { soft: -1, hard: -1 }
       nofile: { soft: 65536, hard: 65536 }
@@ -158,6 +164,64 @@ services:
         condition: service_healthy
     ports:
       - "${CLIENT_PORT:-8080}:80"
+    restart: unless-stopped
+
+  # =========================================================================
+  # Database viewers (profile: tools)
+  #
+  #   docker compose --profile tools up -d
+  #
+  # Optional, and never started by the default or "apps" profiles. These are
+  # browser UIs so nothing has to be installed on the host; see the README for
+  # when a native client (SSMS, Compass) is the better choice instead.
+  # =========================================================================
+
+  mongo-express:
+    profiles: ["tools"]
+    image: mongo-express:1.0.2
+    container_name: sl-mongo-express
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      # Local development only — no login prompt in front of the UI.
+      ME_CONFIG_BASICAUTH: "false"
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8081}:8081"
+    restart: unless-stopped
+
+  elasticvue:
+    profiles: ["tools"]
+    image: cars10/elasticvue:1.5.0
+    container_name: sl-elasticvue
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "${ELASTICVUE_PORT:-8082}:8080"
+    restart: unless-stopped
+
+  # Kibana is the official Elasticsearch UI and far richer than Elasticvue, but
+  # it wants ~1GB of RAM and a minute to boot, so it sits behind its own profile:
+  #
+  #   docker compose --profile kibana up -d
+  kibana:
+    profiles: ["kibana"]
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    container_name: sl-kibana
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      # Silences the "no encryption key" warning on a throwaway local instance.
+      XPACK_SECURITY_ENCRYPTIONKEY: a-32-character-long-local-dev-key
+      XPACK_REPORTING_ENCRYPTIONKEY: a-32-character-long-local-dev-key
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: a-32-character-long-local-dev-key
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
     restart: unless-stopped
 
 volumes:

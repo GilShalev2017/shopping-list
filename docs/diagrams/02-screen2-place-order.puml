@@ -1,0 +1,139 @@
+@startuml 02-screen2-place-order
+' Screen 2: checkout form through to a document persisted in Elasticsearch.
+' Covers assignment requirements 1-4 of the second screen.
+
+title Screen 2 — confirm the order (default driver: Elasticsearch)
+
+skinparam shadowing false
+skinparam defaultFontName Sans
+skinparam sequence {
+  ArrowColor #2f5fd8
+  LifeLineBorderColor #9aa7c2
+  ParticipantBorderColor #2f5fd8
+  ParticipantBackgroundColor #eef2fd
+  ActorBorderColor #0f9d76
+  BoxBorderColor #cfd6e6
+}
+
+actor Shopper as user
+
+box "Browser — React + Redux Toolkit" #f7f9ff
+  participant "CheckoutPage" as page
+  participant "validation.ts\n<size:10>pure functions</size>" as valid
+  participant "cartSlice\n<size:10>selectors</size>" as cart
+  participant "ordersApi\n<size:10>RTK Query mutation</size>" as rtkq
+end box
+
+box "orders-api — NestJS 11" #f2fbf8
+  participant "ValidationPipe\n<size:10>class-validator</size>" as pipe
+  participant "OrdersController" as ctrl
+  participant "OrdersService" as svc
+  participant "ORDER_REPOSITORY\n<size:10>injected port</size>" as port
+  participant "ElasticsearchOrderRepository\n<size:10>adapter</size>" as adapter
+end box
+
+database "Elasticsearch\nindex: orders" as es
+
+== Requirements 1 & 2 — the form and the chosen products ==
+
+user -> page : clicks "Continue to order"
+activate page
+page -> cart : selectCartItems / selectCartTotal
+cart --> page : lines + total
+page --> user : 3 required fields\n+ the products from screen 1
+deactivate page
+
+user -> page : fills name, address, email
+note right of page
+  Validation stays silent until the first
+  submit attempt, then re-runs live on
+  every keystroke. Errors are returned as
+  i18n **keys**, so switching language
+  re-renders them correctly.
+end note
+
+== Requirement 3 — confirm sends the form to the server ==
+
+user -> page : clicks "Confirm order"
+activate page
+page -> valid : validateCustomer(customer)
+activate valid
+valid --> page : {} | { fullName?, address?, email? }
+deactivate valid
+
+alt any field invalid
+  page --> user : error summary + per-field messages\n<size:10>aria-invalid, role="alert"</size>
+  note right of page: no request is sent
+else all fields valid
+  page -> cart : selectOrderItems()
+  cart --> page : items in wire shape
+  page -> page : normalizeCustomer()\n<size:10>trim, collapse spaces, lowercase email</size>
+
+  page -> rtkq : createOrder({ customer, items, locale })
+  activate rtkq
+  rtkq -> pipe : POST /api/orders
+  activate pipe
+
+  pipe -> pipe : whitelist + forbidNonWhitelisted\nnested @ValidateNested\nIsTwoWords on fullName
+
+  alt payload rejected
+    pipe --> rtkq : 400 { statusCode, error, message[] }
+    rtkq --> page : isError
+    page --> user : banner, cart left intact
+  else payload accepted
+    pipe -> ctrl : CreateOrderDto
+    deactivate pipe
+    activate ctrl
+    ctrl -> svc : create(dto)
+    activate svc
+
+    note right of svc
+      **Totals are recomputed here.**
+      The client sends quantities and unit
+      prices; it never sends a total. Money a
+      browser can set is money a browser can
+      change.
+    end note
+
+    svc -> svc : lineTotal = round2(qty x unitPrice)\nitemCount = sum(qty)\ntotalAmount = sum(lineTotal)
+    svc -> svc : id = ULID-ish\nreference = "ORD-" + 6 hex\nstatus = "confirmed", currency = "ILS"\ncreatedAt = now (ISO)
+
+    svc -> port : save(order)
+    activate port
+    port -> adapter : (bound at composition time)
+    activate adapter
+
+    == Requirement 4 — the server stores the details *and* the item array ==
+
+    adapter -> es : PUT /orders/_doc/{id}?refresh=wait_for
+    activate es
+    note right of es
+      `refresh: 'wait_for'` makes the document
+      visible to the very next search. Without it
+      a user could be redirected to the receipt
+      and get an empty result inside the default
+      1 s refresh interval.
+    end note
+    es --> adapter : 201 created
+    deactivate es
+
+    adapter --> port : Order
+    deactivate adapter
+    port --> svc : Order
+    deactivate port
+    svc --> ctrl : Order
+    deactivate svc
+    ctrl --> rtkq : 201 Created + the persisted order
+    deactivate ctrl
+
+    rtkq --> page : unwrap() resolves
+    deactivate rtkq
+
+    page -> cart : dispatch(cartCleared())
+    page -> page : navigate('/orders/:id', { state: { order } })
+    page --> user : receipt with the order reference
+  end
+end
+deactivate page
+
+@enduml

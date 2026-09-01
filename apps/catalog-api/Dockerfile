@@ -17,6 +17,13 @@ RUN dotnet restore src/CatalogApi/CatalogApi.csproj
 # Then the sources.
 COPY src/ src/
 
+# The publish output must contain CatalogApi.xml next to CatalogApi.dll: it is what
+# Program.cs feeds to Swagger for the endpoint descriptions and examples. It gets there
+# on its own because CatalogApi.csproj sets GenerateDocumentationFile=true, and nothing
+# below strips it - there is no PublishDocumentationFile=false, no trimming and no
+# single-file publish, and the runtime stage copies /app/publish wholesale. If the file
+# ever goes missing the app still starts: the IncludeXmlComments call is guarded by
+# File.Exists and simply produces a thinner document.
 RUN dotnet publish src/CatalogApi/CatalogApi.csproj \
     --configuration Release \
     --no-restore \

@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interview Preparation — Shopping List Assignment</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --surface-2: #eef1f7;
+    --border: #e3e6ee;
+    --border-strong: #ccd2e0;
+    --text: #111725;
+    --muted: #5c6579;
+    --faint: #8a92a6;
+    --brand: #2f5fd8;
+    --brand-soft: #e8eefc;
+    --accent: #0f9d76;
+    --accent-soft: #e4f6f0;
+    --warn: #b5730a;
+    --warn-soft: #fdf3e0;
+    --code-bg: #f2f4f9;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgb(16 24 40 / .05), 0 8px 24px rgb(16 24 40 / .06);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d1017; --surface: #151a23; --surface-2: #1c2230;
+      --border: #272e3d; --border-strong: #3a4356;
+      --text: #e8ecf5; --muted: #95a0b6; --faint: #6d7789;
+      --brand: #6b95ff; --brand-soft: #1b2540;
+      --accent: #2fd6a3; --accent-soft: #10302a;
+      --warn: #e0a33a; --warn-soft: #33280f;
+      --code-bg: #10141c;
+      --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px rgb(0 0 0 / .35);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d1017; --surface: #151a23; --surface-2: #1c2230;
+    --border: #272e3d; --border-strong: #3a4356;
+    --text: #e8ecf5; --muted: #95a0b6; --faint: #6d7789;
+    --brand: #6b95ff; --brand-soft: #1b2540;
+    --accent: #2fd6a3; --accent-soft: #10302a;
+    --warn: #e0a33a; --warn-soft: #33280f;
+    --code-bg: #10141c;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px rgb(0 0 0 / .35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    color: var(--text); background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  code, pre { font-family: var(--mono); }
+
+  /* ---- header ---- */
+  header {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .head-inner {
+    max-width: 1180px; margin: 0 auto; padding: .9rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: .7rem; margin-right: auto; }
+  .mark {
+    width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center;
+    background: linear-gradient(140deg, var(--brand), var(--accent)); font-size: 1.15rem;
+  }
+  .brand h1 { font-size: 1rem; margin: 0; letter-spacing: -.01em; }
+  .brand p { margin: 0; font-size: .78rem; color: var(--muted); }
+
+  .search {
+    flex: 1 1 260px; max-width: 380px; padding: .55rem .9rem;
+    border: 1px solid var(--border); border-radius: 999px;
+    background: var(--surface); color: var(--text); font: inherit; font-size: .9rem;
+  }
+  .search:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent); }
+
+  .btn {
+    padding: .5rem .95rem; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font: inherit; font-size: .82rem;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+
+  /* ---- layout ---- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 1.75rem 1.5rem 5rem; display: grid; grid-template-columns: 230px minmax(0,1fr); gap: 2rem; align-items: start; }
+  nav.toc { position: sticky; top: 5.2rem; display: flex; flex-direction: column; gap: .15rem; }
+  nav.toc a {
+    padding: .4rem .7rem; border-radius: 8px; text-decoration: none;
+    color: var(--muted); font-size: .85rem; font-weight: 500;
+    display: flex; justify-content: space-between; gap: .5rem;
+  }
+  nav.toc a:hover { background: var(--surface-2); color: var(--text); }
+  nav.toc a .n { color: var(--faint); font-size: .75rem; font-variant-numeric: tabular-nums; }
+
+  .intro {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.1rem 1.3rem; margin-bottom: 1.75rem; box-shadow: var(--shadow);
+  }
+  .intro p { margin: 0 0 .6rem; color: var(--muted); font-size: .92rem; }
+  .intro p:last-child { margin-bottom: 0; }
+  .intro strong { color: var(--text); }
+
+  section { margin-bottom: 2.25rem; scroll-margin-top: 5.5rem; }
+  section > h2 {
+    font-size: 1.05rem; margin: 0 0 .2rem; letter-spacing: -.01em;
+    display: flex; align-items: center; gap: .55rem;
+  }
+  section > .sub { margin: 0 0 .9rem; color: var(--muted); font-size: .85rem; }
+
+  details.qa {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: .6rem; overflow: hidden;
+  }
+  details.qa[open] { box-shadow: var(--shadow); border-color: var(--border-strong); }
+  details.qa > summary {
+    cursor: pointer; padding: .85rem 1.1rem; font-weight: 600; font-size: .95rem;
+    list-style: none; display: flex; gap: .7rem; align-items: flex-start;
+  }
+  details.qa > summary::-webkit-details-marker { display: none; }
+  details.qa > summary::before {
+    content: "▸"; color: var(--brand); flex: none; transition: transform .15s ease;
+    line-height: 1.5;
+  }
+  details.qa[open] > summary::before { transform: rotate(90deg); }
+  details.qa > summary:hover { background: var(--surface-2); }
+
+  .tag {
+    margin-left: auto; flex: none; font-size: .68rem; font-weight: 700;
+    padding: .12rem .5rem; border-radius: 999px; text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .tag.core  { background: var(--brand-soft); color: var(--brand); }
+  .tag.deep  { background: var(--accent-soft); color: var(--accent); }
+  .tag.trap  { background: var(--warn-soft);  color: var(--warn); }
+
+  .answer { padding: 0 1.1rem 1.05rem; border-top: 1px solid var(--border); }
+  .answer > *:first-child { margin-top: .9rem; }
+  .answer p { margin: 0 0 .7rem; font-size: .92rem; }
+  .answer ul, .answer ol { margin: 0 0 .7rem; padding-left: 1.2rem; font-size: .92rem; }
+  .answer li { margin-bottom: .3rem; }
+  .answer strong { color: var(--text); }
+  .answer code {
+    background: var(--code-bg); padding: .1rem .35rem; border-radius: 5px;
+    font-size: .86em; border: 1px solid var(--border);
+  }
+  .answer pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: .75rem .9rem; overflow-x: auto; font-size: .82rem; line-height: 1.5;
+    margin: 0 0 .7rem;
+  }
+  .answer pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+  .keypoint {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 0 0 .7rem;
+    font-size: .88rem;
+  }
+  .keypoint b { color: var(--text); }
+  .pitfall {
+    border-left: 3px solid var(--warn); background: var(--warn-soft);
+    padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 0 0 .7rem;
+    font-size: .88rem;
+  }
+  .ref { font-size: .8rem; color: var(--faint); margin: .5rem 0 0; }
+  .ref code { font-size: .95em; }
+
+  .empty { padding: 2rem; text-align: center; color: var(--muted); display: none; }
+  body.filtering .empty.show { display: block; }
+
+  footer { max-width: 1180px; margin: 0 auto; padding: 0 1.5rem 3rem; color: var(--faint); font-size: .8rem; }
+
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: minmax(0,1fr); }
+    nav.toc { position: static; flex-direction: row; flex-wrap: wrap; margin-bottom: 1rem; }
+    nav.toc a { background: var(--surface); border: 1px solid var(--border); }
+  }
+  @media print {
+    header, nav.toc, .btn, .search { display: none !important; }
+    .wrap { grid-template-columns: 1fr; padding-top: 0; }
+    details.qa { break-inside: avoid; box-shadow: none; }
+    .answer { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">🎯</span>
+      <div>
+        <h1>Interview Preparation</h1>
+        <p>Shopping List — React · .NET 10 · NestJS</p>
+      </div>
+    </div>
+    <input class="search" id="q" type="search" placeholder="Search questions and answers…" aria-label="Search">
+    <button class="btn" id="expand">Expand all</button>
+    <button class="btn" id="theme">Theme</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" id="toc" aria-label="Sections"></nav>
+
+  <main id="main">
+    <div class="intro">
+      <p><strong>How to use this.</strong> Every question below is one a panel could reasonably ask about
+      <em>this specific submission</em>. The answers are written the way you would say them out loud — the claim first,
+      then the reason, then the trade-off. If you can give the first two sentences of each answer from memory, you are
+      prepared.</p>
+      <p><strong>The single most important habit:</strong> when asked "why did you do X", answer with the alternative you
+      rejected and why. "I used a normalised cart because an array makes duplicate-line handling a linear scan" is a
+      senior answer. "Because it's best practice" is not.</p>
+      <p><span class="tag core">core</span> expected of any candidate &nbsp;
+         <span class="tag deep">deep</span> separates senior from mid &nbsp;
+         <span class="tag trap">trap</span> a question with a wrong-sounding right answer</p>
+    </div>
+    <div class="empty" id="empty">No questions match that search.</div>
+  </main>
+</div>
+
+<footer>
+  Generated for the Shopping List home assignment · see <code>docs/ARCHITECTURE.md</code> for the full technical write-up.
+</footer>
+
+<script>
+const DATA = [
+{
+  id: "arch", title: "Architecture & system design", icon: "🏛️",
+  sub: "The questions that decide the interview. Expect most of your time here.",
+  items: [
+  { q: "Walk me through the architecture.", tag: "core", a: `
+    <p>Three independently deployable components joined only in the browser.</p>
+    <ul>
+      <li><strong>React 19 + Redux Toolkit client</strong> serving both screens.</li>
+      <li><strong>.NET 10 + EF Core + SQL Server</strong> for screen 1 — categories and products. Read-only.</li>
+      <li><strong>NestJS + Elasticsearch</strong> (MongoDB swappable) for screen 2 — persisting orders.</li>
+    </ul>
+    <p>The two backends share nothing: no database, no library, no deployment unit. You can stop either one and the
+    other keeps serving its screen — I'd offer to demonstrate that.</p>
+    <div class="keypoint"><b>Lead with the "why", not the "what".</b> The split isn't arbitrary: the catalog is
+    read-heavy and highly relational, orders are write-once self-contained documents. Each half uses the storage model
+    that fits it. That's the sentence that turns a description into a design rationale.</div>
+    <p class="ref">Reference: <code>docs/ARCHITECTURE.md §1</code>, <code>docs/diagrams/00-system-overview.puml</code></p>` },
+
+  { q: "Why two backends instead of one? Isn't that over-engineering for a shopping list?", tag: "deep", a: `
+    <p>Honest answer first: <strong>the assignment specified it.</strong> Say that plainly — pretending it was purely
+    your idea invites a follow-up you'll lose.</p>
+    <p>Then defend it on the merits, because it is defensible:</p>
+    <ul>
+      <li>The two halves have different access patterns — read-heavy and near-static versus write-once.</li>
+      <li>Different consistency needs — a product must belong to exactly one category; orders have no cross-order invariants.</li>
+      <li>Different natural stores — relational versus document.</li>
+    </ul>
+    <p>Then name the cost, unprompted: two deployment units, two connection pools, no distributed transaction across
+    them, and a client that must handle one being down while the other is up. At this scale those costs are trivial;
+    at ten services they wouldn't be.</p>
+    <div class="keypoint"><b>Naming the cost of your own design is the strongest move available in an architecture
+    interview.</b> It signals you chose rather than defaulted.</div>` },
+
+  { q: "There's no transaction spanning the two databases. Is that a problem?", tag: "trap", a: `
+    <p>No — and the reason matters. There's nothing to coordinate: <strong>placing an order never writes to the
+    catalog.</strong> The order copies the product data it needs and the catalog is untouched. So there is no
+    cross-database write, and therefore no distributed transaction to miss.</p>
+    <p>If the requirement changed to decrement stock on order, that <em>would</em> introduce a real cross-store
+    invariant. I would not reach for two-phase commit — I'd use the outbox pattern: write the order and an event
+    atomically in the orders store, then have a consumer apply the stock change with retries and idempotency.
+    Eventual consistency with a visible reconciliation path beats a distributed transaction that fails in ways
+    nobody can debug.</p>
+    <div class="keypoint">This question is checking whether you'll invent a problem to sound thorough. The correct
+    first answer is "there is no shared write here."</div>` },
+
+  { q: "How does the client know which backend to call?", tag: "core", a: `
+    <p>Two RTK Query API slices with different base URLs, from build-time environment variables —
+    <code>VITE_CATALOG_API_URL</code> and <code>VITE_ORDERS_API_URL</code>. Each feature imports its own slice.</p>
+    <p>Vite inlines <code>import.meta.env</code> at <strong>build</strong> time, so those URLs are compiled into the
+    bundle. That's why changing an API port means rebuilding the client image, and why the README says so explicitly.
+    If I needed runtime configuration I'd serve a small <code>/config.json</code> that the app fetches on boot, or have
+    nginx reverse-proxy both APIs under one origin — which would also remove CORS entirely.</p>` },
+
+  { q: "Why is the contract in a separate document rather than generated or shared as a package?", tag: "deep", a: `
+    <p>Three codebases in three languages can't share a type. The realistic options were:</p>
+    <ol>
+      <li>Generate clients from OpenAPI.</li>
+      <li>Write the contract by hand and transcribe it.</li>
+    </ol>
+    <p>I chose (2) for a submission this size because generation adds a build step and a toolchain the reviewer has to
+    install, for two endpoints' worth of types. <code>docs/CONTRACT.md</code> is written first and all three components
+    are built against it, so the wire format is a specification rather than an accident.</p>
+    <p>At production scale I'd flip: publish the OpenAPI documents from CI and generate a typed client for the frontend,
+    so drift becomes a compile error instead of a runtime 500. Both services already emit OpenAPI, so that step is
+    available — it just isn't wired up.</p>` },
+
+  { q: "What happens if the catalog service is down when the page loads?", tag: "core", a: `
+    <p>RTK Query surfaces <code>isError</code>; the page renders an error state naming the URL it failed to reach and
+    offering a retry button that calls <code>refetch()</code>. The cart and the rest of the app keep working — you can
+    still reach checkout with a previously persisted cart.</p>
+    <p>There's a test for exactly this, including the recovery path where the retry succeeds.</p>
+    <p>Concretely on the server side: the catalog API <strong>never crash-loops</strong> if SQL Server is unreachable.
+    It retries the connection with backoff and reports <code>503</code> on <code>/health</code>. A crash-looping
+    container tells you nothing; a running container reporting unhealthy tells you exactly what's wrong.</p>` },
+
+  { q: "How would you scale this to 10,000 concurrent users?", tag: "deep", a: `
+    <p>I'd measure first, but the predictable bottlenecks in order:</p>
+    <ul>
+      <li><strong>Catalog reads</strong> — near-static data refetched per session. ETags plus a CDN would remove almost
+      all of that traffic before it reaches .NET. This is the cheapest win by an order of magnitude.</li>
+      <li><strong>SQL Server connections</strong> — the catalog API is stateless so it scales horizontally, but each
+      instance holds a pool. Past a point you need a connection proxy or a read replica.</li>
+      <li><strong>Elasticsearch writes</strong> — <code>refresh: 'wait_for'</code> is a per-request latency cost. At
+      high write volume I'd drop it and solve read-after-write by returning the created order from the POST (which the
+      API already does) rather than re-reading.</li>
+      <li><strong>The client bundle</strong> — currently one chunk. Route-level code splitting would cut first paint.</li>
+    </ul>
+    <div class="keypoint">Notice that three of the four fixes are "stop doing work", not "add machines". That's the
+    instinct they're testing.</div>` },
+  ]
+},
+
+{
+  id: "react", title: "React & Redux Toolkit", icon: "⚛️",
+  sub: "The assignment names RTK explicitly, so expect the state questions to be probing.",
+  items: [
+  { q: "What lives in Redux and what doesn't? How did you decide?", tag: "core", a: `
+    <p>The rule I applied: <strong>server state goes in RTK Query, client-owned state goes in slices, and nothing lives
+    in both.</strong></p>
+    <pre><code>store
+├── cart          ← client-owned (a slice)
+├── ui            ← theme + locale (a slice)
+├── catalogApi    ← RTK Query cache
+└── ordersApi     ← RTK Query cache</code></pre>
+    <p>Categories, products and orders are owned by a server. Copying them into a reducer creates a second source of
+    truth that immediately starts to rot. The cart and the UI preferences are genuinely owned by the client — no server
+    knows or cares about them — so they're plain slices.</p>
+    <div class="pitfall"><b>The anti-pattern this avoids:</b> "fetch in a thunk, store the result in a slice". That
+    reimplements caching, loading flags, error handling and deduplication by hand in every feature, badly. RTK Query
+    gives all four for free.</div>` },
+
+  { q: "Why is the cart an object keyed by id rather than an array?", tag: "deep", a: `
+    <pre><code>interface CartState {
+  items: Record&lt;number, CartItem&gt;;  // keyed by productId
+  ids: number[];                    // insertion order
+  lastAddedId: number | null;
+}</code></pre>
+    <p>Three reasons, in order of importance:</p>
+    <ol>
+      <li><strong>Adding the same product twice must increment one line, not create a duplicate.</strong> With an array
+      that's a linear scan on every add; with a map it's a property lookup.</li>
+      <li><strong>Quantity updates are O(1)</strong> rather than mapping the whole array to a new array.</li>
+      <li><strong><code>ids</code> exists because object key order is not reliable for integer-like keys</strong> —
+      JavaScript reorders them numerically. Insertion order is user-visible (the cart must not reshuffle itself), so
+      it's stored explicitly.</li>
+    </ol>
+    <p>If asked why not <code>createEntityAdapter</code>: it produces exactly this shape, and I'd use it in a larger
+    app. Here the cart has one non-standard field and three mutations, so the adapter would add indirection without
+    removing code. That's a judgement call I'm happy to defend either way.</p>` },
+
+  { q: "Where is the cart total stored?", tag: "trap", a: `
+    <p><strong>It isn't.</strong> It's derived by a memoised <code>createSelector</code>.</p>
+    <p>A stored total is a denormalisation that has to be updated on all four cart mutations. The bug where it drifts
+    from the items is both classic and invisible until a customer complains about being charged the wrong amount.
+    Deriving it makes that class of bug impossible.</p>
+    <p><code>createSelector</code> memoises, so it only recomputes when the cart actually changes — you get correctness
+    without recomputing on every render.</p>
+    <div class="keypoint">This is a "do you understand normalisation" question wearing a Redux costume. The answer is
+    the same one you'd give about a denormalised column in a database.</div>` },
+
+  { q: "How is the cart persisted, and why middleware rather than useEffect?", tag: "deep", a: `
+    <p>A <code>createListenerMiddleware</code> watches the four cart actions and the four UI actions and mirrors state
+    to <code>localStorage</code>.</p>
+    <p>Middleware rather than <code>useEffect</code> because <strong>persistence is a side effect of actions, not of
+    rendering.</strong> It belongs in the store's pipeline. Putting it in a component means every component that
+    mutates the cart has to remember to trigger it, and a component that unmounts at the wrong moment silently stops
+    persisting.</p>
+    <p>Two details I'd volunteer:</p>
+    <ul>
+      <li>Everything read back is <strong>validated field by field</strong>. Storage is user-writable and survives
+      deploys, so it's hostile input. A corrupted entry degrades to an empty cart rather than crashing the app on boot.</li>
+      <li>Every access is wrapped in <code>try/catch</code> — <code>localStorage</code> throws outright in some privacy
+      modes, and a persistence failure must never take the app down.</li>
+    </ul>` },
+
+  { q: "Screen 1 needs categories and products. How many requests does it make?", tag: "core", a: `
+    <p><strong>One.</strong> <code>GET /api/categories</code> embeds each category's products, so the whole screen
+    renders from a single request on mount — which is exactly what assignment requirement 1 asks for.</p>
+    <p>Both the dropdown picker and the product grid consume the same <code>useGetCategoriesQuery()</code>. RTK Query
+    deduplicates that into one network call. There's a test that counts the requests and asserts it's exactly one —
+    that's the kind of thing that's easy to claim and cheap to prove.</p>` },
+
+  { q: "Why RTK Query and not React Query, or plain thunks?", tag: "core", a: `
+    <p>The assignment specifies Redux Toolkit, and RTK Query ships in the box — it shares the store, the devtools and
+    the middleware pipeline. Adding React Query alongside Redux would mean two caches and two devtools for no gain.</p>
+    <p>Against plain thunks: thunks give you no caching, no deduplication, no automatic loading/error state and no
+    invalidation. You end up writing all four by hand in every feature. RTK Query is the same team's answer to that
+    problem.</p>
+    <p>Where React Query would win: a non-Redux app, or one needing its more advanced features like infinite queries
+    and suspense integration. Not this app.</p>` },
+
+  { q: "How do you test a component that's connected to the store?", tag: "deep", a: `
+    <p>By rendering it inside the <strong>real</strong> provider stack — real store, real i18next, real router — and
+    mocking only the network, at the HTTP layer, with MSW.</p>
+    <pre><code>renderWithProviders(&lt;CartPanel /&gt;, {
+  preloadedState: { cart: makeCartState([...]), ui: uiState('en') },
+});</code></pre>
+    <div class="keypoint"><b>A test that mocks <code>useSelector</code> tests the mock.</b> A test that dispatches a
+    real action through a real reducer and asserts on the rendered output tests the application. It also means a
+    failure points at a real defect rather than a stale mock.</div>
+    <p>The other half is querying by role and accessible name rather than by CSS class, so a refactor that preserves
+    behaviour doesn't break the suite — and a component that can't be found by its accessible name has an accessibility
+    bug the test just caught for free.</p>` },
+
+  { q: "Why is the Tooltip rendered through a portal?", tag: "deep", a: `
+    <p>The cart list is a scroll container (<code>overflow-y: auto</code>). A bubble positioned above the first row
+    would be clipped by its own parent. A portal to <code>&lt;body&gt;</code> with <code>position: fixed</code> and
+    viewport coordinates escapes the clipping ancestor entirely — that's the correct fix rather than a hack like
+    padding the top of the list.</p>
+    <p>The trade-off is that fixed coordinates go stale on scroll or resize, so the tooltip dismisses on both rather
+    than chasing the anchor.</p>
+    <p>Two more decisions worth mentioning because they show judgement:</p>
+    <ul>
+      <li>It only appears when the name is <strong>actually clipped</strong> — measured via
+      <code>scrollWidth</code> vs <code>clientWidth</code> through a <code>ResizeObserver</code>. A tooltip repeating
+      text you can already read is noise.</li>
+      <li>It's <code>aria-hidden</code>. CSS ellipsis is a purely visual effect; the full name is already in the DOM and
+      already announced. Adding ARIA would make a screen reader read every product name twice.</li>
+    </ul>` },
+
+  { q: "React 19 — did you use any of the new features?", tag: "trap", a: `
+    <p>Honestly: not meaningfully, and I'd say so rather than inventing usage.</p>
+    <p>React 19's headline additions — Actions, <code>useActionState</code>, <code>useOptimistic</code>, the
+    <code>use</code> hook, server components — mostly target patterns this app doesn't have. Form submission goes
+    through an RTK Query mutation because the rest of the app's server state lives there; using
+    <code>useActionState</code> for that one form would mean two mechanisms for the same job.</p>
+    <p>What I do get from 19 for free: the improved <code>ref</code> handling (no <code>forwardRef</code> ceremony),
+    better hydration error messages, and the automatic batching improvements.</p>
+    <div class="keypoint">Claiming to use a framework feature you didn't is the fastest way to lose credibility.
+    "I considered it and here's why it didn't fit" is a stronger answer than a fabricated one.</div>` },
+  ]
+},
+
+{
+  id: "dotnet", title: ".NET 10, EF Core & SQL Server", icon: "🟣",
+  sub: "The assignment names Entity Framework explicitly — expect the ORM questions to be specific.",
+  items: [
+  { q: "Walk me through the layering of the catalog API.", tag: "core", a: `
+    <pre><code>Api/            controllers, middleware        → HTTP only
+Application/    ICatalogService, exceptions    → use cases
+Domain/         Category, Product, ProductUnit → plain entities
+Infrastructure/ DbContext, configurations, seeder
+Contracts/      DTOs + mapping extensions     → the wire shape</code></pre>
+    <p>Dependencies point inward. The controller never sees <code>DbContext</code>; the service never sees
+    <code>HttpContext</code>. <code>Infrastructure</code> implements what <code>Application</code> declares.</p>
+    <p>The domain entities carry <strong>no data annotations</strong> — all persistence concern lives in
+    <code>IEntityTypeConfiguration&lt;T&gt;</code> classes. <code>[MaxLength(80)]</code> on a domain type is a database
+    fact wearing a domain hat.</p>` },
+
+  { q: "Fluent API or data annotations — and why?", tag: "core", a: `
+    <p>Fluent API, in <code>IEntityTypeConfiguration&lt;T&gt;</code> classes applied by
+    <code>ApplyConfigurationsFromAssembly</code>.</p>
+    <p>Reasons: it keeps EF Core out of the domain model entirely, it can express things annotations can't (composite
+    keys, value conversions, index filters, cascade behaviour), and one file per entity keeps the configuration
+    discoverable instead of scattered across property attributes.</p>
+    <p>Annotations win on brevity for trivial models, and I'd accept them in a small internal tool. For anything with a
+    domain layer worth the name, coupling the entity to the ORM is a cost you pay forever.</p>` },
+
+  { q: "How is the ProductUnit enum stored, and why?", tag: "deep", a: `
+    <pre><code>builder.Property(p =&gt; p.Unit).HasConversion&lt;string&gt;();</code></pre>
+    <p>As a <strong>string</strong>, not the default integer ordinal. Two reasons:</p>
+    <ul>
+      <li>An <code>int</code> column makes the database unreadable without the C# source. <code>SELECT * FROM
+      Products</code> returning <code>Unit = 3</code> tells a DBA nothing.</li>
+      <li>Reordering or inserting an enum member <strong>silently corrupts every existing row</strong>. That's a
+      genuinely nasty production incident, and it's entirely preventable.</li>
+    </ul>
+    <p>The cost is a few bytes per row and slightly larger indexes. That's a trivial price for data that survives
+    refactoring.</p>` },
+
+  { q: "What type is the price, and why does it matter?", tag: "trap", a: `
+    <p><code>decimal</code>, configured as <code>HasPrecision(10, 2)</code> → <code>decimal(10,2)</code> in SQL Server.</p>
+    <p><strong>Money is never a floating-point type.</strong> <code>double</code> cannot represent <code>6.90</code>
+    exactly — it stores the nearest binary fraction — and those errors compound across a cart. You end up with a total
+    of <code>21.199999999999996</code> and a customer who was charged a cent more than the sum of the lines.</p>
+    <p><code>decimal</code> is base-10 and exact for two decimal places. On the Elasticsearch side I made the analogous
+    choice: <code>scaled_float</code> with <code>scaling_factor: 100</code>, which stores <code>6.90</code> as the
+    integer <code>690</code>.</p>` },
+
+  { q: "Why two queries instead of an Include?", tag: "deep", a: `
+    <pre><code>var categories = await _db.Categories.AsNoTracking()
+    .OrderBy(c =&gt; c.SortOrder).ToListAsync(ct);
+var products = await _db.Products.AsNoTracking()
+    .Where(p =&gt; p.IsActive).ToListAsync(ct);</code></pre>
+    <p>A single <code>Include</code> produces a join, and a join returns the category columns <strong>once per
+    product</strong> — a cartesian result set. With 6 categories and 48 products that's 48 rows carrying duplicated
+    category data. It gets worse as the ratio grows; this is the classic "cartesian explosion" EF Core added
+    split queries to solve.</p>
+    <p>Two flat indexed queries stitched in memory is faster here, provider-agnostic (filtered <code>Include</code>
+    support varies), and lets the identical code run against the in-memory provider in tests.</p>
+    <p>If asked about alternatives: <code>AsSplitQuery()</code> does essentially this inside EF, and I'd use it on a
+    larger model. Here explicit is clearer.</p>` },
+
+  { q: "What does AsNoTracking do and why is it everywhere?", tag: "core", a: `
+    <p>It tells EF Core not to add the returned entities to the change tracker.</p>
+    <p>This API <strong>never writes</strong>, so tracking is pure overhead — memory for the snapshots, CPU for the
+    identity resolution, all of it discarded at the end of the request. Turning it off is the cheapest EF Core
+    performance win available, typically 10–30% on read-heavy paths.</p>
+    <p>The catch to mention: with no-tracking you get a fresh instance per query rather than identity resolution, so
+    the same row fetched twice gives you two objects. Irrelevant on a read path; it would matter if you were updating.</p>` },
+
+  { q: "You used EnsureCreated instead of migrations. Defend that.", tag: "trap", a: `
+    <p>I'd concede immediately that <strong>migrations are correct for production</strong> and this isn't production.
+    Then give the real reason, which is about honesty rather than convenience.</p>
+    <p>I had no .NET SDK available in the environment where the code was authored, so I couldn't run
+    <code>dotnet ef migrations add</code>. The alternative was hand-writing a migration <em>and</em> its
+    <code>ModelSnapshot</code>. A snapshot that silently disagrees with the configurations is worse than no migration
+    at all: every future <code>migrations add</code> then produces a wrong diff, and nobody notices until a deploy drops
+    a column.</p>
+    <p>So I shipped <code>EnsureCreatedAsync()</code>, documented the trade-off in
+    <code>apps/catalog-api/MIGRATIONS.md</code>, and included the exact command and the one-line change to move to real
+    migrations.</p>
+    <div class="keypoint">Also know the concrete limitation: <code>EnsureCreated</code> cannot evolve a schema. It
+    creates the database if absent and does nothing otherwise — it will not add a column you introduce later. The two
+    mechanisms don't mix; you pick one.</div>` },
+
+  { q: "How does the API survive SQL Server not being ready yet?", tag: "deep", a: `
+    <p>SQL Server takes 30–45 seconds to accept connections on a cold volume, and <code>depends_on:
+    service_healthy</code> alone isn't always enough.</p>
+    <p><code>DatabaseInitializer</code> retries with backoff — 10 attempts at 2s, 4s, … capped at 15s — and crucially
+    <strong>never throws</strong>. A database-less API starts and reports <code>503</code> on <code>/health</code>
+    rather than crash-looping.</p>
+    <div class="keypoint">The reasoning is worth stating: a crash-looping container tells you almost nothing and floods
+    the logs with restarts. A running container reporting unhealthy tells you exactly which dependency is missing, and
+    recovers on its own when the database appears.</div>
+    <p>It also runs inside <strong>its own DI scope</strong>, not resolved from the root provider — otherwise you'd
+    capture a scoped <code>DbContext</code> in a singleton, which is the classic captive-dependency bug.</p>` },
+
+  { q: "Explain the DI lifetimes you used.", tag: "core", a: `
+    <table style="width:100%;border-collapse:collapse;font-size:.88rem">
+      <tr style="text-align:left"><th>Service</th><th>Lifetime</th><th>Why</th></tr>
+      <tr><td><code>CatalogDbContext</code></td><td>Scoped</td><td>EF's unit of work is per request</td></tr>
+      <tr><td><code>ICatalogService</code></td><td>Scoped</td><td>Depends on the context</td></tr>
+      <tr><td><code>DatabaseInitializer</code></td><td>Scoped</td><td>Resolved in an explicit startup scope</td></tr>
+      <tr><td>Exception middleware</td><td>Singleton</td><td>Takes only <code>RequestDelegate</code> + logger</td></tr>
+    </table>
+    <p style="margin-top:.7rem">The rule: <strong>nothing longer-lived may hold something shorter-lived.</strong> A
+    singleton holding a scoped <code>DbContext</code> is the captive dependency bug — the context is never disposed,
+    the change tracker grows forever, and you get cross-request data leakage. .NET's scope validation catches it in
+    development.</p>` },
+
+  { q: "How do you handle errors, and what does the client see?", tag: "core", a: `
+    <p>A middleware sitting outermost converts exceptions to RFC 7807 <code>application/problem+json</code>:
+    <code>NotFoundException</code> → 404, <code>ArgumentException</code> → 400, everything else → 500 with a generic
+    detail and the real exception logged rather than returned.</p>
+    <p>Two subtleties I'd volunteer because they're the kind of thing that shows production experience:</p>
+    <ul>
+      <li>A <strong>client disconnect</strong> (<code>OperationCanceledException</code> with the request aborted) is
+      not a server error. It's caught separately, logged at Debug, and no response is attempted — you can't write to a
+      dead socket, and logging it as an error pollutes your alerting.</li>
+      <li><code>ArgumentNullException</code> is <strong>excluded</strong> from the 400 branch. Every guard clause in the
+      codebase throws it, so an internal contract violation would otherwise surface as a client error — and the body
+      would leak <code>"Value cannot be null. (Parameter 'catalogService')"</code> to a browser.</li>
+    </ul>` },
+  ]
+},
+
+{
+  id: "nest", title: "NestJS & the orders service", icon: "🐈",
+  sub: "This is where the strongest design work is. Make sure you can explain the ports-and-adapters piece cold.",
+  items: [
+  { q: "Explain the pluggable persistence design.", tag: "deep", a: `
+    <p>The persistence layer is a <strong>port with two adapters</strong>.</p>
+    <pre><code>OrdersService
+     │  depends only on ↓
+OrderRepository (abstract class)      ← the port
+     │  bound at composition time to ↓
+     ├── ElasticsearchOrderRepository ← default
+     └── MongoOrderRepository</code></pre>
+    <p><code>PersistenceModule.forRoot()</code> is a dynamic module that reads validated config once at bootstrap and
+    registers exactly one driver's providers against the <code>ORDER_REPOSITORY</code> token.</p>
+    <p>Nothing above that token knows which store is live — not the service, not the controller, not the client.
+    Adding a third driver means writing one adapter and adding one <code>case</code>; no existing file changes.
+    That's the Open/Closed Principle with a concrete payoff.</p>
+    <div class="keypoint"><b>The closing move:</b> a shared contract test suite runs identical assertions against both
+    adapters with their clients mocked, asserting they produce the same <code>Order</code>. That turns "the swap is
+    safe" from a claim into a verified property. Offer to show that file.</div>` },
+
+  { q: "Why is the port an abstract class rather than an interface?", tag: "deep", a: `
+    <p>TypeScript interfaces are <strong>erased at compile time</strong>. They don't exist at runtime, so they cannot
+    be used as a dependency-injection token — there's nothing for Nest to key on.</p>
+    <p>An abstract class survives compilation and can serve as a token directly. I still use an explicit string token
+    (<code>ORDER_REPOSITORY</code>) because it makes the binding visible in one place and keeps the swap obvious to a
+    reader, but the abstract class is what gives the port a runtime identity and lets TypeScript enforce that both
+    adapters implement it.</p>` },
+
+  { q: "Where are the order totals calculated?", tag: "trap", a: `
+    <p><strong>On the server, always.</strong> The client sends quantities and unit prices; it never sends a total.</p>
+    <pre><code>lineTotal   = round2(quantity × unitPrice)
+itemCount   = Σ quantity
+totalAmount = round2(Σ lineTotal)</code></pre>
+    <p>The reasoning is one sentence: <em>money a browser can set is money a browser can change.</em> Anything computed
+    from client input and then trusted is an open door — you can edit a POST body in devtools in about four seconds.</p>
+    <p>The id, reference, status, currency and timestamp are also server-generated for the same reason.</p>
+    <p>Detail worth having ready: <code>round2</code> uses
+    <code>Math.round((v + Number.EPSILON) * 100) / 100</code> rather than <code>toFixed</code>, because
+    <code>toFixed</code> returns a string and has its own rounding surprises at the half-cent boundary.</p>` },
+
+  { q: "How is the request validated?", tag: "core", a: `
+    <p><code>class-validator</code> behind a global <code>ValidationPipe</code>:</p>
+    <pre><code>{ whitelist: true, forbidNonWhitelisted: true, transform: true }</code></pre>
+    <ul>
+      <li><code>whitelist</code> strips properties the DTO doesn't declare.</li>
+      <li><code>forbidNonWhitelisted</code> <strong>rejects</strong> rather than strips. An unexpected field is either a
+      bug or an attack; silently ignoring it hides both.</li>
+      <li><code>transform</code> turns the plain JSON body into a real DTO instance — this is what makes nested
+      <code>@ValidateNested({ each: true }) @Type(() =&gt; OrderItemDto)</code> actually validate array elements instead
+      of waving them through.</li>
+    </ul>
+    <div class="pitfall"><b>The classic gotcha:</b> without <code>transform: true</code>, nested validation silently
+    passes everything. The decorators are there, the tests look fine, and nothing is checked. Worth knowing by name.</div>
+    <p>There's also a custom <code>IsTwoWords</code> validator for the assignment's "first and last name in one field".</p>` },
+
+  { q: "What's a dynamic module and why did you need one?", tag: "deep", a: `
+    <p>A normal Nest module has a static <code>@Module({})</code> decorator — its providers are fixed at author time.
+    A dynamic module is a static method returning the module definition, so the provider set can be
+    <strong>computed</strong>.</p>
+    <p>I needed one because which providers to register depends on runtime configuration. <code>forRoot()</code> reads
+    <code>NOSQL_DRIVER</code> and returns either the Elasticsearch provider set or the Mongo one, binding the same two
+    tokens either way.</p>
+    <p>It's marked <code>global: true</code> so the two consumer modules don't each re-run <code>forRoot()</code> —
+    which would build a second database client and a second connection pool.</p>` },
+
+  { q: "How does the health endpoint work, and why not Terminus?", tag: "core", a: `
+    <p><code>GET /health</code> returns <code>{ status, driver, store }</code>. The <code>driver</code> field is the
+    fastest way to answer "which database am I actually talking to right now" — which matters precisely because the
+    answer is configurable.</p>
+    <p>Not Terminus because the contract pins an exact response shape that isn't Terminus's. A two-method
+    <code>StoreHealthIndicator</code> port with one implementation per driver is smaller, matches the contract exactly,
+    and swaps with the driver like everything else. Terminus would have been the right call if I needed its
+    orchestrator integrations or a dozen indicators.</p>` },
+  ]
+},
+
+{
+  id: "es", title: "Elasticsearch", icon: "🔍",
+  sub: "The mapping file is an explicit deliverable, so expect it to be read closely.",
+  items: [
+  { q: "Walk me through your mapping file.", tag: "core", a: `
+    <p>Four decisions carry it:</p>
+    <ul>
+      <li><code>"dynamic": "strict"</code> — an unexpected field is a 400, not a new field.</li>
+      <li><code>items</code> as <code>nested</code> — so per-item queries don't cross-match between cart lines.</li>
+      <li><code>customer.email</code> as <code>keyword</code> with a lowercase normalizer — it's an identifier, not prose.</li>
+      <li>Money as <code>scaled_float</code> with <code>scaling_factor: 100</code> — exact at two decimal places.</li>
+    </ul>
+    <p>Plus <code>number_of_replicas: 0</code> because a single-node cluster can never allocate a replica and would sit
+    permanently yellow, and a <code>_meta</code> block recording the application, a schema version and a link back to
+    the contract — so someone finding this index in six months knows what wrote it.</p>` },
+
+  { q: "Why nested instead of a plain array of objects? This is the important one.", tag: "deep", a: `
+    <p>Elasticsearch <strong>flattens object arrays</strong> internally. Given two items:</p>
+    <pre><code>items: [
+  { unit: "carton", quantity: 2 },
+  { unit: "kg",     quantity: 5 }
+]</code></pre>
+    <p>Lucene stores that as two parallel lists — <code>items.unit: ["carton","kg"]</code> and
+    <code>items.quantity: [2,5]</code>. The association between <code>carton</code> and <code>2</code> is
+    <strong>gone</strong>.</p>
+    <p>So a query for "orders containing 2 cartons" would match this order even if it contained 2 kg of something and a
+    carton of something else. That's a silently wrong answer, which is the worst kind.</p>
+    <p><code>nested</code> indexes each item as a hidden separate Lucene document, preserving the associations, and
+    <code>nested</code> queries join them back at search time.</p>
+    <div class="keypoint"><b>Name the costs too:</b> one Lucene document per item (so an order with 10 items is 11
+    documents), you must use <code>nested</code> queries and <code>nested</code> aggregations, and updating any item
+    reindexes the whole order. Correct answers are worth all three.</div>` },
+
+  { q: "Why refresh: 'wait_for' on the write?", tag: "deep", a: `
+    <p>Elasticsearch is <strong>near-real-time, not real-time</strong>. A document is searchable only after the next
+    refresh, which by default is up to 1 second away.</p>
+    <p>The app redirects to the receipt immediately after the POST resolves, and that page may re-read the order.
+    Without <code>wait_for</code>, that read can legitimately return nothing — a user seeing "order not found" for their
+    own order they just placed.</p>
+    <p><code>wait_for</code> holds the response until the document is visible in the next scheduled refresh.</p>
+    <div class="pitfall"><b>Know why not <code>refresh: true</code>:</b> that forces an <em>immediate</em> refresh,
+    creating a new Lucene segment per write. It hurts indexing throughput cluster-wide and generates segment-merge
+    pressure for everyone. <code>wait_for</code> waits for the refresh that was going to happen anyway.</div>
+    <p>The genuinely scalable answer is what the API already does: <strong>return the created order from the POST</strong>
+    so no read-back is needed at all. <code>wait_for</code> is belt-and-braces for a page opened cold.</p>` },
+
+  { q: "text vs keyword — when do you use which?", tag: "core", a: `
+    <p><strong><code>text</code></strong> is analysed: tokenised, lowercased, stemmed. Use it when you want to search
+    <em>within</em> the value — full-text relevance matching. You cannot sort or aggregate on it reliably.</p>
+    <p><strong><code>keyword</code></strong> is stored verbatim as a single term. Use it for identifiers, enums, status
+    codes, emails — anything you match exactly, sort by, or aggregate on.</p>
+    <p>In my mapping: <code>reference</code>, <code>unit</code>, <code>status</code>, <code>currency</code> and
+    <code>locale</code> are keywords. <code>customer.address</code> is text.</p>
+    <p><code>fullName</code> is a <strong>multi-field</strong> — <code>text</code> for "find orders by someone called
+    Levi", with a <code>.keyword</code> sub-field for exact match, sorting and aggregation. That's the standard answer
+    to "can I both search and aggregate on this field", and being able to say it cleanly is table stakes.</p>` },
+
+  { q: "Why track_total_hits on the search?", tag: "trap", a: `
+    <p>Since Elasticsearch 7.0, <code>total.value</code> is <strong>capped at 10,000 by default</strong> as a
+    performance optimisation — beyond that it reports 10,000 with <code>relation: "gte"</code> rather than counting.</p>
+    <p>If you build pagination on that number, your UI silently lies once you pass ten thousand orders: it shows "10,000
+    results" forever and the last page is wrong.</p>
+    <p><code>track_total_hits: true</code> forces an exact count. The cost is real on huge indices, which is exactly why
+    it's off by default — so at genuine scale I'd use <code>search_after</code> cursor pagination instead of offsets and
+    stop needing an exact total at all.</p>` },
+
+  { q: "How is the index created, and what if it already exists?", tag: "core", a: `
+    <p>A bootstrap running on module init does <code>indices.exists</code>, and creates the index from the mapping file
+    only if absent. Existing indices are left completely alone — you cannot change most mappings in place anyway, so
+    silently trying would be worse than not trying.</p>
+    <p>The mapping is loaded from <code>infra/elasticsearch/orders.mapping.json</code> with an embedded TypeScript copy
+    as a fallback so the container works even without the file mounted. <strong>A test deep-equals the two</strong>, so
+    drift between them is a build failure rather than a production surprise.</p>
+    <p>If the mapping genuinely needed to change, the answer is a new index plus the reindex API plus an alias swap —
+    which is why production indices are usually accessed through an alias from day one.</p>` },
+
+  { q: "Would you use Elasticsearch as a system of record in production?", tag: "trap", a: `
+    <p><strong>No.</strong> I used it here because the assignment asked for it, and I'd say that directly.</p>
+    <p>Elasticsearch has no transactions, no foreign keys, near-real-time visibility rather than read-after-write, and
+    its durability story is weaker than a database designed for it. It's a search and analytics engine.</p>
+    <p>In production I'd write orders to a durable store — Postgres, or MongoDB with majority write concern — and feed
+    Elasticsearch from it as a search index, via change data capture or an outbox. Then you get exact-once durability
+    and rich search, each from the system that's good at it.</p>
+    <div class="keypoint">This question is checking whether you'll defend a choice past the point where it's
+    defensible. The assignment made the choice; you're allowed to say what you'd do differently.</div>` },
+  ]
+},
+
+{
+  id: "mongo", title: "MongoDB", icon: "🍃",
+  sub: "You added this beyond the requirement, so be ready to justify the extra surface area.",
+  items: [
+  { q: "Why the official driver instead of Mongoose?", tag: "deep", a: `
+    <p>Mongoose would introduce a <strong>third description of the same shape</strong> — the TypeScript type, the
+    Elasticsearch mapping, and now a Mongoose schema — all of which have to be kept in step by hand.</p>
+    <p>The driver keeps the Mongo adapter <strong>symmetrical</strong> with the Elasticsearch one: both map a domain
+    <code>Order</code> to a plain document and back, with no framework in between. That symmetry is what makes the
+    shared contract test meaningful.</p>
+    <p>Mongoose earns its place when you want schema validation in the app layer, middleware hooks, population, or a
+    large model surface. Here the validation already happens in <code>class-validator</code> before the repository is
+    ever called, so Mongoose would be duplicating it.</p>` },
+
+  { q: "What indexes did you create and why?", tag: "core", a: `
+    <pre><code>{ key: { createdAt: -1 }, name: 'orders_createdAt_desc' }
+{ key: { id: 1 },        name: 'orders_id_unique', unique: true }
+{ key: { reference: 1 }, name: 'orders_reference' }</code></pre>
+    <ul>
+      <li><strong><code>createdAt</code> descending</strong> backs the default listing sort. Without it, listing is a
+      collection scan plus an in-memory sort — and Mongo <em>aborts</em> a non-indexed sort past 32 MB rather than
+      degrading. That's a production outage waiting for your data to grow.</li>
+      <li><strong>Unique on <code>id</code></strong> makes the domain identifier a real constraint rather than a hope.</li>
+      <li><strong><code>reference</code></strong> backs human lookup — "customer quotes ORD-8F3A21 on the phone".</li>
+    </ul>` },
+
+  { q: "Why project away _id?", tag: "deep", a: `
+    <p><code>{ projection: { _id: 0 } }</code> on every read.</p>
+    <p>Mongo's <code>_id</code> is an <strong>implementation detail of the adapter</strong>. The domain identifier is
+    <code>id</code>, generated by the service and identical whichever store is behind the port. If <code>_id</code>
+    leaked into the domain object it would appear in API responses under the Mongo driver and not under the
+    Elasticsearch one — the two adapters would stop being interchangeable, and the contract test would catch it.</p>
+    <p>It's a small thing that demonstrates the abstraction is real rather than decorative.</p>` },
+
+  { q: "How do you manage the connection pool?", tag: "core", a: `
+    <p>The <code>MongoClient</code> is created <strong>once</strong> as a Nest provider with a configurable
+    <code>maxPoolSize</code>, connected on module init and closed on <code>onApplicationShutdown</code>.</p>
+    <p>The driver pools internally, so one client per process is correct. Creating a client per request is the classic
+    way to exhaust a database's connection limit — and it's slow, because every request pays TCP and handshake cost.</p>
+    <p>The Nest lifecycle hook matters for clean shutdown: without it, in-flight operations are killed rather than
+    drained, and the server logs a connection reset on every deploy.</p>` },
+  ]
+},
+
+{
+  id: "testing", title: "Testing", icon: "🧪",
+  sub: "You claim very high coverage. Expect the panel to probe whether it's real.",
+  items: [
+  { q: "You have 100% coverage. Isn't that a vanity metric?", tag: "trap", a: `
+    <p>Largely, yes — and I'd agree rather than defend the number. <strong>Coverage measures which lines executed, not
+    whether anything was asserted.</strong> You can hit 100% with tests that assert nothing.</p>
+    <p>What I'd point at instead is the <em>shape</em> of the suite:</p>
+    <ul>
+      <li>Mocking happens at the <strong>HTTP boundary</strong> with MSW, not on hooks or modules — so tests exercise
+      real wiring and a failure means a real defect.</li>
+      <li>There's a <strong>contract suite run against both persistence adapters</strong>, which is a property test
+      about the architecture, not a line-coverage exercise.</li>
+      <li>There's a suite asserting <strong>every i18n key exists in both languages</strong> with matching
+      interpolation placeholders — a forgotten Hebrew string is a red build.</li>
+      <li>A test <strong>deep-equals the Elasticsearch mapping file</strong> against its embedded copy.</li>
+      <li>The orders e2e suite <strong>replays the OpenAPI document's own examples</strong> against the live app, so a
+      documented example can't silently rot.</li>
+    </ul>
+    <p>Those five tests are worth more than the percentage. The coverage threshold is there to stop <em>regression</em>
+    in test discipline, not as evidence of quality.</p>` },
+
+  { q: "What's your testing philosophy?", tag: "core", a: `
+    <p>Three rules:</p>
+    <ol>
+      <li><strong>Mock at the boundary, not inside.</strong> The network is mocked; the store, router and i18n are real.</li>
+      <li><strong>Test behaviour, not implementation.</strong> Query by role and accessible name so a refactor that
+      preserves behaviour doesn't break the suite — and a component you can't find by its accessible name has an
+      accessibility bug the test just caught.</li>
+      <li><strong>One real end-to-end journey.</strong> <code>App.test.tsx</code> walks the whole flow and asserts on
+      the exact payload the orders API received.</li>
+    </ol>` },
+
+  { q: "How did you test the pluggable persistence without running two databases?", tag: "deep", a: `
+    <p>A shared contract suite parameterised over both adapters, with their clients mocked — a jest-mocked
+    <code>@elastic/elasticsearch</code> <code>Client</code> and a mocked Mongo <code>Collection</code>. The same
+    assertions run twice and must produce identical <code>Order</code> results.</p>
+    <p>That proves the <em>mapping logic</em> is equivalent, which is where the real risk lives.</p>
+    <p>What it does <strong>not</strong> prove is that the wire calls are correct — a mock will happily accept a
+    malformed query. So I also ran the built service against a stub Elasticsearch HTTP server and verified the actual
+    request sequence: <code>HEAD /orders</code>, <code>PUT /orders</code>, <code>PUT /orders/_doc/{id}?refresh=wait_for</code>,
+    <code>POST /orders/_search</code>. In a real project that gap is what Testcontainers is for.</p>` },
+
+  { q: "The .NET tests weren't executed. Is that a problem?", tag: "trap", a: `
+    <p>Be straight about it: the environment where the code was written had no .NET SDK, so the 54 xUnit tests were
+    <strong>authored but not run there</strong>. I verified the service end-to-end instead by running the full Docker
+    stack — the container builds, connects to SQL Server, creates and seeds the schema, and reports healthy, and the
+    endpoints return correct data.</p>
+    <p>So the code demonstrably compiles and works; the test suite specifically is the part I'd want to see green
+    before saying it's finished, and running <code>dotnet test</code> is the first thing I'd do on a machine with the
+    SDK.</p>
+    <div class="keypoint">Volunteering a limitation before you're asked is worth more than being caught by it. The panel
+    almost certainly ran the code themselves.</div>` },
+  ]
+},
+
+{
+  id: "i18n", title: "Internationalisation, RTL & accessibility", icon: "🌐",
+  sub: "Hebrew RTL is genuinely hard to do properly and is a good differentiator if you can explain it.",
+  items: [
+  { q: "How did you implement RTL?", tag: "deep", a: `
+    <p><strong>One stylesheet, no RTL-specific overrides.</strong> The rule enforced throughout is: no physical
+    direction properties.</p>
+    <pre><code>margin-inline-start   not  margin-left
+inset-inline-end      not  right
+padding-block         not  padding-top/bottom
+text-align: start     not  text-align: left</code></pre>
+    <p>Switching <code>dir</code> on <code>&lt;html&gt;</code> then mirrors the entire layout correctly. Exactly two
+    rules key off direction explicitly, and both are genuinely directional: the select chevron's background position
+    and the back-arrow glyph.</p>
+    <p>The alternative — a separate RTL stylesheet, or an <code>[dir=rtl]</code> override for every rule — doubles the
+    CSS and guarantees the two drift apart.</p>` },
+
+  { q: "What breaks in RTL that people usually miss?", tag: "deep", a: `
+    <p>Two things, and knowing them is the difference between "supports RTL" and "actually works in Hebrew":</p>
+    <ul>
+      <li><strong>Numbers and Latin text inside RTL paragraphs.</strong> The Unicode bidirectional algorithm reorders
+      them — <code>₪13.80</code> and <code>dana@example.com</code> come out scrambled. I wrap them in
+      <code>direction: ltr; unicode-bidi: isolate</code>.</li>
+      <li><strong>Hebrew pluralisation.</strong> i18next resolves plurals through <code>Intl.PluralRules</code>, and
+      Hebrew has more categories than English — <code>one</code>, <code>two</code>, <code>many</code>,
+      <code>other</code>, depending on the ICU version. Providing only <code>_one</code> and <code>_other</code> means
+      some counts fall through and render the raw key. <code>he.json</code> carries all four.</li>
+    </ul>
+    <div class="keypoint">The second one is a genuinely good thing to mention unprompted — most candidates who claim
+    RTL support have never hit it.</div>` },
+
+  { q: "How does the catalog get translated?", tag: "core", a: `
+    <p>It doesn't get translated at runtime — it's <strong>bilingual at the data layer</strong>. Every category and
+    product carries both <code>nameHe</code> and <code>nameEn</code> from the database, and
+    <code>localizedName(entity, locale)</code> picks one.</p>
+    <p>So switching language re-labels the entire catalog with <strong>no refetch and no second request</strong>,
+    because the data was always there.</p>
+    <p>The alternatives are both worse: a translation file for product names drifts from the database the moment
+    someone adds a product, and a <code>?lang=</code> query parameter means a round trip plus a cache entry per
+    language.</p>` },
+
+  { q: "What accessibility work did you do?", tag: "core", a: `
+    <ul>
+      <li>Landmarks — <code>banner</code>, <code>main</code>, <code>contentinfo</code> — plus a skip link.</li>
+      <li>Every form field has an associated label, <code>aria-invalid</code> when invalid, and
+      <code>aria-describedby</code> pointing at its error, which carries <code>role="alert"</code>.</li>
+      <li>The cart count is announced via an <code>aria-live="polite"</code> region so adding an item is audible
+      without stealing focus.</li>
+      <li>Icon-only buttons carry accessible names that include the product — "Remove Milk 3%", not "Remove".</li>
+      <li><code>prefers-reduced-motion</code> disables animation.</li>
+      <li>Tests query by role and accessible name, so a11y regressions break the build.</li>
+    </ul>
+    <p>The tooltip decision is the interesting one: it's <code>aria-hidden</code> <em>on purpose</em>, because the full
+    name is already in the DOM and already announced. Ellipsis is a visual effect only; adding ARIA would make a screen
+    reader read every product name twice.</p>` },
+  ]
+},
+
+{
+  id: "devops", title: "Docker, build & operations", icon: "🐳",
+  sub: "Expect at least one question about how the reviewer got it running.",
+  items: [
+  { q: "Walk me through the Docker Compose setup.", tag: "core", a: `
+    <p>Databases have no profile so they always start; the three apps sit behind an <code>apps</code> profile, and the
+    optional DB viewers behind <code>tools</code>.</p>
+    <pre><code>docker compose up -d                  # databases only — run apps from the IDE
+docker compose --profile apps up -d   # everything
+docker compose --profile tools up -d  # mongo-express + Elasticvue</code></pre>
+    <p>That gives two genuinely different workflows from one file: a reviewer who just wants it running uses the second,
+    a developer who wants hot reload uses the first.</p>
+    <p>Every service has a healthcheck and <code>depends_on: condition: service_healthy</code>, so the apps don't race
+    their databases. That's the difference between "works on my machine" and "works on a cold clone".</p>` },
+
+  { q: "How do the Dockerfiles keep the images small?", tag: "core", a: `
+    <p>Multi-stage builds throughout.</p>
+    <ul>
+      <li><strong>Client:</strong> node builds the Vite bundle, then only <code>dist/</code> is copied into an nginx
+      alpine image. The final image contains no Node, no <code>node_modules</code>, no source.</li>
+      <li><strong>orders-api:</strong> three stages — build with dev dependencies, install production dependencies
+      separately, then copy just <code>dist/</code> and <code>node_modules</code> into the runtime image. Runs as
+      non-root with <code>dumb-init</code> for signal handling.</li>
+      <li><strong>catalog-api:</strong> SDK image publishes, ASP.NET runtime image runs. Also non-root.</li>
+    </ul>
+    <p>Manifests are copied before source in every case, so the dependency layer is cached until dependencies actually
+    change — that's what makes a rebuild seconds rather than minutes.</p>` },
+
+  { q: "Why does the client need rebuilding when an API port changes?", tag: "deep", a: `
+    <p>Because Vite <strong>inlines <code>import.meta.env</code> at build time</strong>. The API base URLs are literal
+    strings in the compiled bundle, not runtime lookups. There's no <code>process.env</code> in a browser.</p>
+    <p>Two ways to make it runtime-configurable, both real options:</p>
+    <ul>
+      <li>Serve a small <code>/config.json</code> that the app fetches before rendering.</li>
+      <li>Have nginx reverse-proxy both APIs under the client's own origin, so the client only ever uses relative URLs —
+      which also eliminates CORS entirely.</li>
+    </ul>
+    <p>For a local demo, baking them in is simpler and the README documents the consequence. At production I'd take the
+    nginx route.</p>` },
+
+  { q: "What are the security gaps in this deployment?", tag: "trap", a: `
+    <p>Several, and I'd list them unprompted rather than wait to be caught:</p>
+    <ul>
+      <li><strong>No authentication anywhere.</strong> Both APIs are open, and <code>GET /api/orders/:id</code> means
+      anyone with an id can read anyone's order. That's the most serious one.</li>
+      <li><strong>The SQL Server password is in <code>docker-compose.yml</code>.</strong> Correct for a throwaway local
+      stack, wrong everywhere else — production wants a secret manager.</li>
+      <li><strong>Elasticsearch has security disabled</strong> and CORS set to <code>*</code> so the browser viewer can
+      reach it. Local-only, and commented as such.</li>
+      <li><strong>No rate limiting</strong> on order creation.</li>
+      <li><strong>No idempotency key</strong> — a double-clicked submit creates two orders.</li>
+    </ul>
+    <div class="keypoint">Knowing exactly which corners you cut, and why each was acceptable <em>for this context</em>,
+    reads as senior. Not knowing reads as careless.</div>` },
+  ]
+},
+
+{
+  id: "meta", title: "Curveballs & closing questions", icon: "🎭",
+  sub: "The ones that aren't really about code.",
+  items: [
+  { q: "What's the weakest part of this codebase?", tag: "trap", a: `
+    <p>Have a real answer ready. Mine would be: <strong>the lack of authentication, and the fact that
+    <code>GET /api/orders/:id</code> has no ownership check.</strong> It's the one gap that would be a genuine
+    vulnerability rather than a scoping decision.</p>
+    <p>Second: <code>EnsureCreated</code> instead of migrations — it works for a demo but cannot evolve a schema, so
+    it's a dead end the moment the model changes.</p>
+    <p>Third, more honestly: the catalog API's test suite was authored but never executed in the environment where it
+    was written.</p>
+    <div class="pitfall"><b>Do not say "I'm a perfectionist" or "nothing, really".</b> A candidate who can't critique
+    their own work either isn't looking or isn't telling you.</div>` },
+
+  { q: "How long did this take, and what did you spend the time on?", tag: "core", a: `
+    <p>Answer honestly with a breakdown, because the breakdown is the interesting part. Roughly:</p>
+    <ul>
+      <li>The three apps' happy paths are the smallest part — maybe a quarter.</li>
+      <li>Tests, and getting the test <em>infrastructure</em> right (MSW handlers, the provider-aware render helper,
+      fixtures) — a large chunk.</li>
+      <li>RTL and i18n done properly rather than superficially.</li>
+      <li>Docker orchestration and getting a cold <code>docker compose up</code> to work reliably.</li>
+      <li>Documentation — the contract, the architecture write-up, the diagrams.</li>
+    </ul>
+    <p>The honest observation: <em>the code was the easy part.</em> Making it start reliably on someone else's machine
+    and be explicable to someone who's never seen it took longer than writing it.</p>` },
+
+  { q: "If you had another week, what would you add?", tag: "core", a: `
+    <p>In priority order — and note that none of these are features:</p>
+    <ol>
+      <li><strong>Authentication and an ownership check on orders.</strong> The one real vulnerability.</li>
+      <li><strong>Real EF migrations</strong> plus a deployment step that applies them.</li>
+      <li><strong>Idempotency keys</strong> on order creation.</li>
+      <li><strong>Testcontainers</strong> for the persistence adapters, so the contract suite runs against real
+      Elasticsearch and Mongo rather than mocks.</li>
+      <li><strong>A CI pipeline</strong> running all three suites and building all three images on every push.</li>
+    </ol>
+    <p>Notably not: more screens. The assignment's scope is complete; the gaps are all in hardening.</p>` },
+
+  { q: "You went beyond the requirements in several places. Why?", tag: "trap", a: `
+    <p>Be careful with this one — it can be a test for scope discipline rather than an invitation to boast.</p>
+    <p>The honest framing: each addition was chosen to <strong>demonstrate something the role tests for</strong>, and
+    each is small.</p>
+    <ul>
+      <li>The MongoDB adapter exists because the assignment offered a choice, and building the abstraction that makes
+      both work shows the architecture skill a senior role is assessing. It's about 100 lines.</li>
+      <li>The product grid alongside the required dropdown flow exists because a dropdown-only supermarket isn't
+      something anyone would ship. Both paths dispatch the same action, so the required flow is fully intact and
+      independently tested.</li>
+      <li>Dark mode and i18n were explicit requirements from my side of the brief.</li>
+    </ul>
+    <p>What I deliberately did <strong>not</strong> add: user accounts, order history, search, admin screens. Those
+    would have been scope creep with no assessment value.</p>` },
+
+  { q: "Did you use AI to build this?", tag: "trap", a: `
+    <p>Answer honestly — the panel will find out in the technical discussion regardless, and being caught in an evasion
+    is far worse than the answer itself.</p>
+    <p>Then move immediately to the thing that actually matters to them: <strong>can you explain, defend and modify
+    every decision in it?</strong> That is what this document is for. If you can answer the <code>nested</code>
+    mapping question, the enum-as-string question, and the why-not-Mongoose question without notes, the provenance
+    stops being interesting.</p>
+    <div class="keypoint">The strongest possible move: offer to make a live change. "Ask me to add a field to the order
+    and I'll walk you through every file that has to change." Nobody who didn't understand the codebase can do that.</div>` },
+
+  { q: "Add a 'delivery date' field to the order. Walk me through every file you'd touch.", tag: "deep", a: `
+    <p>Rehearse this one out loud — it's the most likely live exercise, and the answer demonstrates that you know the
+    system's seams.</p>
+    <ol>
+      <li><code>docs/CONTRACT.md</code> — the contract changes first, always.</li>
+      <li><code>apps/client/src/types/orders.ts</code> — add the field to the payload type.</li>
+      <li><code>apps/client/src/features/orders/validation.ts</code> + its test — validate it.</li>
+      <li><code>apps/client/src/pages/CheckoutPage.tsx</code> — the input, wired to state.</li>
+      <li><code>apps/client/src/i18n/locales/{en,he}.json</code> — label, placeholder, error messages. <em>Both</em>, or
+      the parity test fails.</li>
+      <li><code>apps/orders-api/src/orders/dto/create-order.dto.ts</code> — <code>@IsDateString()</code>, plus
+      <code>@ApiProperty</code> so it appears in OpenAPI.</li>
+      <li><code>apps/orders-api/src/orders/entities/order.entity.ts</code> — the domain type.</li>
+      <li><code>infra/elasticsearch/orders.mapping.json</code> — a <code>date</code> field… <strong>and here's the
+      catch:</strong> the mapping is <code>dynamic: strict</code> and the index already exists, so I'd need a new index
+      plus reindex plus alias swap. Not a code change alone.</li>
+      <li>The embedded mapping constant, or the sync test fails.</li>
+      <li>The repository contract test, so both adapters are asserted to round-trip it.</li>
+    </ol>
+    <div class="keypoint">Ending on the Elasticsearch reindex problem is the strongest possible finish — it shows you
+    understand the operational consequence, not just the code edit.</div>` },
+  ]
+},
+];
+
+/* ---------- render ---------- */
+const main = document.getElementById('main');
+const toc = document.getElementById('toc');
+const empty = document.getElementById('empty');
+
+DATA.forEach(sec => {
+  const a = document.createElement('a');
+  a.href = '#' + sec.id;
+  a.innerHTML = `<span>${sec.icon} ${sec.title}</span><span class="n">${sec.items.length}</span>`;
+  toc.appendChild(a);
+
+  const s = document.createElement('section');
+  s.id = sec.id;
+  s.innerHTML = `<h2><span aria-hidden="true">${sec.icon}</span>${sec.title}</h2><p class="sub">${sec.sub}</p>`;
+  sec.items.forEach(it => {
+    const d = document.createElement('details');
+    d.className = 'qa';
+    d.innerHTML =
+      `<summary>${it.q}<span class="tag ${it.tag}">${it.tag}</span></summary>` +
+      `<div class="answer">${it.a}</div>`;
+    s.appendChild(d);
+  });
+  main.insertBefore(s, empty);
+});
+
+/* ---------- search ---------- */
+const q = document.getElementById('q');
+q.addEventListener('input', () => {
+  const term = q.value.trim().toLowerCase();
+  document.body.classList.toggle('filtering', term.length > 0);
+  let shown = 0;
+
+  document.querySelectorAll('section').forEach(sec => {
+    let visibleInSection = 0;
+    sec.querySelectorAll('details.qa').forEach(d => {
+      const hit = !term || d.textContent.toLowerCase().includes(term);
+      d.style.display = hit ? '' : 'none';
+      if (hit) { visibleInSection++; shown++; }
+      if (term && hit) d.open = true;
+      if (!term) d.open = false;
+    });
+    sec.style.display = visibleInSection ? '' : 'none';
+  });
+
+  empty.classList.toggle('show', shown === 0);
+});
+
+/* ---------- expand / collapse ---------- */
+const expand = document.getElementById('expand');
+expand.addEventListener('click', () => {
+  const opening = expand.textContent === 'Expand all';
+  document.querySelectorAll('details.qa').forEach(d => { d.open = opening; });
+  expand.textContent = opening ? 'Collapse all' : 'Expand all';
+});
+
+/* ---------- theme ---------- */
+const themeBtn = document.getElementById('theme');
+const KEY = 'interview-prep.theme';
+try {
+  const saved = localStorage.getItem(KEY);
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+} catch (e) { /* storage unavailable */ }
+
+themeBtn.addEventListener('click', () => {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const next = current ? (current === 'dark' ? 'light' : 'dark') : (prefersDark ? 'light' : 'dark');
+  root.setAttribute('data-theme', next);
+  try { localStorage.setItem(KEY, next); } catch (e) { /* storage unavailable */ }
+});
+</script>
+</body>
+</html>

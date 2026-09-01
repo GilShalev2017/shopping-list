@@ -1,0 +1,97 @@
+@startuml 03-driver-swap
+' How the same POST /api/orders call reaches a different database
+' depending on one environment variable. This is the headline design
+' decision of the orders service.
+
+title Pluggable persistence — the same call, two stores
+
+skinparam shadowing false
+skinparam defaultFontName Sans
+skinparam sequence {
+  ArrowColor #2f5fd8
+  LifeLineBorderColor #9aa7c2
+  ParticipantBorderColor #2f5fd8
+  ParticipantBackgroundColor #eef2fd
+  BoxBorderColor #cfd6e6
+}
+
+participant "Nest bootstrap" as boot
+participant "PersistenceModule\n<size:10>.forRoot()</size>" as module
+participant "OrdersService" as svc
+participant "ORDER_REPOSITORY\n<size:10>DI token</size>" as token
+
+box "Elasticsearch driver" #f2fbf8
+  participant "ElasticsearchOrderRepository" as esrepo
+  database "Elasticsearch" as es
+end box
+
+box "MongoDB driver" #fdf6ec
+  participant "MongoOrderRepository" as mongorepo
+  database "MongoDB" as mongo
+end box
+
+== Composition time — happens once, at start-up ==
+
+boot -> module : forRoot(buildConfig())
+activate module
+module -> module : read + validate NOSQL_DRIVER
+
+alt NOSQL_DRIVER = "elasticsearch"  (default)
+  module -> token : bind useClass = ElasticsearchOrderRepository
+  module -> module : also register the ES client,\nindex bootstrap and health probe
+else NOSQL_DRIVER = "mongodb"
+  module -> token : bind useClass = MongoOrderRepository
+  module -> module : also register the Mongo client,\nindex creation and health probe
+else anything else
+  module --> boot : **throw** — config validation fails fast
+  note right of module
+    An unknown driver stops the process at
+    boot rather than failing on the first
+    order at 2 a.m.
+  end note
+end
+
+module --> boot : DynamicModule { global: true }
+deactivate module
+
+== Request time — the service is unaware of any of the above ==
+
+svc -> token : save(order)
+activate token
+
+alt Elasticsearch is bound
+  token -> esrepo : save(order)
+  activate esrepo
+  esrepo -> es : index doc, refresh=wait_for
+  es --> esrepo : ok
+  esrepo --> token : Order
+  deactivate esrepo
+else MongoDB is bound
+  token -> mongorepo : save(order)
+  activate mongorepo
+  mongorepo -> mongo : insertOne({...order})
+  mongo --> mongorepo : ok
+  mongorepo --> token : Order\n<size:10>_id projected away</size>
+  deactivate mongorepo
+end
+
+token --> svc : Order — identical either way
+deactivate token
+
+note over svc, token
+  A shared **contract test suite** runs the same
+  assertions against both adapters with their
+  clients mocked, proving the swap is
+  behaviour-preserving rather than merely claimed:
+
+  apps/orders-api/src/persistence/__tests__/
+      order-repository.contract.ts
+end note
+
+note over es, mongo
+  The two stores are independent databases.
+  Orders written under one driver are **not**
+  visible under the other — expected, not a bug.
+end note
+
+@enduml

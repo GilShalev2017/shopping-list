@@ -6,18 +6,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { NosqlDriver } from '../config/configuration';
 import {
   STORE_HEALTH_INDICATOR,
   StoreHealthIndicator,
 } from '../persistence/order-repository.interface';
-
-/** `GET /health` response — `docs/CONTRACT.md` §3. */
-export class HealthResponse {
-  status: 'ok' | 'error';
-  driver: NosqlDriver;
-  store: 'connected' | 'disconnected';
-}
+import { HealthResponse } from './dto/health.response';
 
 /**
  * Deliberately *not* mounted under the `/api` prefix (see `app.setup.ts`) so
@@ -35,9 +28,32 @@ export class HealthController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Liveness of the API and the configured NoSQL store' })
-  @ApiOkResponse({ type: HealthResponse })
-  @ApiServiceUnavailableResponse({ description: 'The store is unreachable.' })
+  @ApiOperation({
+    operationId: 'checkHealth',
+    summary: 'Liveness of the API and of the configured NoSQL store',
+    description: [
+      'Probes whichever store `NOSQL_DRIVER` selected and reports it back.',
+      '',
+      'This is the endpoint that makes the *pluggable store* claim checkable in',
+      'one request: restart the service with `NOSQL_DRIVER=mongodb` and `driver`',
+      'changes here while every `/api/orders` response stays byte-identical.',
+      '',
+      'It sits at the **root**, outside the `/api` prefix, so the Docker',
+      'HEALTHCHECK and any orchestrator probe have a path that never moves.',
+      'Failure detail (which can contain a connection string) is logged, never',
+      'returned.',
+    ].join('\n'),
+  })
+  @ApiOkResponse({
+    description: 'The API is up and the store answered.',
+    type: HealthResponse,
+  })
+  @ApiServiceUnavailableResponse({
+    description:
+      'The store did not answer. The body is the same shape with ' +
+      '`status: "error"` and `store: "disconnected"`.',
+    type: HealthResponse,
+  })
   async check(): Promise<HealthResponse> {
     const result = await this.indicator.check();
     const body: HealthResponse = {

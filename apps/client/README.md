@@ -104,9 +104,25 @@ Product and category names arrive from the API in both languages (`nameHe` /
 `nameEn`) and are picked by `localizedName(entity, locale)`, so switching
 language re-labels the catalog without a refetch.
 
+### Truncated names in the cart
+
+The cart panel is narrow, so long product names are clipped with an ellipsis.
+Hovering the row's emoji or label reveals the full name in a tooltip — but only
+when the name is *actually* clipped, measured with `useIsTruncated` (a
+`scrollWidth` versus `clientWidth` comparison, re-run on text change and on
+resize via `ResizeObserver`). A tooltip that repeats text already fully visible
+is noise.
+
+The bubble is rendered through a portal onto `<body>` and positioned in viewport
+coordinates: the cart list is a scroll container, so a tooltip living inside a
+row would be clipped above the first one. It carries `aria-hidden`, because CSS
+ellipsis is a purely visual effect — the full name is already in the DOM and
+already announced to screen readers, and duplicating it in ARIA would make
+assistive tech read every product name twice.
+
 ## Testing
 
-289 tests, 100% statement and line coverage, thresholds enforced in
+313 tests, 100% statement and line coverage, thresholds enforced in
 `vite.config.ts`.
 
 The tests render components inside the real provider stack — a real store, real

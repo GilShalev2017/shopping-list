@@ -1,0 +1,118 @@
+@startuml 04-startup-and-seeding
+' What `docker compose --profile apps up -d` actually does, and why the
+' apps survive their databases not being ready yet.
+
+title Cold start — schema creation, seeding and index bootstrap
+
+skinparam shadowing false
+skinparam defaultFontName Sans
+skinparam sequence {
+  ArrowColor #2f5fd8
+  LifeLineBorderColor #9aa7c2
+  ParticipantBorderColor #2f5fd8
+  ParticipantBackgroundColor #eef2fd
+  BoxBorderColor #cfd6e6
+}
+
+participant "docker compose" as compose
+database "SQL Server" as sql
+database "Elasticsearch" as es
+database "MongoDB" as mongo
+participant "catalog-api" as catalog
+participant "orders-api" as orders
+participant "client (nginx)" as client
+
+== Databases first — Compose gates on health, not on "started" ==
+
+compose -> sql : start
+compose -> es : start
+compose -> mongo : start
+
+loop until healthy (or retries exhausted)
+  compose -> sql : sqlcmd -Q "SELECT 1"
+  compose -> es : GET /_cluster/health?wait_for_status=yellow
+  compose -> mongo : mongosh --eval "db.adminCommand('ping')"
+end
+
+note over compose
+  `depends_on: condition: service_healthy`
+  is why the apps do not race the databases.
+  SQL Server typically takes 30-45 s.
+end note
+
+== catalog-api ==
+
+compose -> catalog : start (sqlserver healthy)
+activate catalog
+
+catalog -> catalog : DatabaseInitializer\n<size:10>own DI scope, not the root provider</size>
+
+loop up to 10 attempts, 2s/4s/.../15s backoff
+  catalog -> sql : open connection
+  alt not accepting connections yet
+    sql --> catalog : transient failure
+    catalog -> catalog : wait, retry
+  else connected
+    sql --> catalog : ok
+  end
+end
+
+alt Catalog__AutoMigrate = true
+  catalog -> sql : EnsureCreatedAsync()\n<size:10>Categories, Products, indexes</size>
+end
+
+alt Catalog__SeedData = true and Categories is empty
+  catalog -> sql : insert 6 categories + 48 products\n<size:10>Hebrew + English names, ILS prices</size>
+  note right of catalog
+    Guarded by `AnyAsync()`, so a restart
+    against a populated volume is a no-op.
+  end note
+else already seeded
+  catalog -> catalog : skip
+end
+
+catalog -> catalog : never throws on failure —\nreports 503 on /health instead of crash-looping
+catalog --> compose : healthy (GET /health = 200)
+deactivate catalog
+
+== orders-api ==
+
+compose -> orders : start (elasticsearch + mongodb healthy)
+activate orders
+
+orders -> orders : buildConfig() — validate env,\nfail fast on an unknown NOSQL_DRIVER
+orders -> orders : PersistenceModule.forRoot()\nbind ONE adapter to ORDER_REPOSITORY
+
+alt driver = elasticsearch
+  orders -> es : HEAD /orders
+  alt index absent
+    orders -> orders : load infra/elasticsearch/orders.mapping.json\n<size:10>embedded TS copy as fallback</size>
+    orders -> es : PUT /orders { settings, mappings }
+    note right of orders
+      A test deep-equals the JSON file against
+      the embedded constant, so drift between
+      them is a build failure, not a surprise.
+    end note
+  else index present
+    orders -> orders : leave it alone
+  end
+else driver = mongodb
+  orders -> mongo : connect (maxPoolSize from config)
+  orders -> mongo : createIndexes\n<size:10>unique id, reference, createdAt desc</size>
+end
+
+orders --> compose : healthy (GET /health = 200)
+deactivate orders
+
+== client ==
+
+compose -> client : start (both APIs healthy)
+client --> compose : serving the Vite bundle on :80
+
+note over client
+  The API base URLs were baked into the bundle
+  at **build** time (Vite inlines import.meta.env),
+  so changing a port means rebuilding this image.
+end note
+
+@enduml

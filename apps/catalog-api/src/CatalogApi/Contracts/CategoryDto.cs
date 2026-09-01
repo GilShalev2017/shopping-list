@@ -3,15 +3,23 @@
 namespace CatalogApi.Contracts;
 
 /// <summary>
-/// Wire shape of a category with its products, exactly as specified in
-/// docs/CONTRACT.md section 2. Screen 1 renders from a single GET /api/categories.
+/// One aisle of the catalog: a category together with its active products, exactly as
+/// specified in docs/CONTRACT.md section 2. Products are nested rather than linked so
+/// screen 1 can render from a single <c>GET /api/categories</c> on page load.
 /// </summary>
-/// <param name="Id">Category id.</param>
-/// <param name="Slug">Stable url-safe key.</param>
-/// <param name="NameEn">English name.</param>
-/// <param name="NameHe">Hebrew name.</param>
-/// <param name="SortOrder">Ascending display order.</param>
-/// <param name="Products">Active products in this category.</param>
+/// <example>{"id":1,"slug":"dairy","nameEn":"Dairy","nameHe":"מוצרי חלב","sortOrder":1,"products":[{"id":101,"categoryId":1,"slug":"milk-3","nameEn":"Milk 3%","nameHe":"חלב 3%","unit":"carton","pricePerUnit":6.90,"emoji":"🥛","isActive":true}]}</example>
+/// <param name="Id">Database identity of the category. Example: <c>1</c>.</param>
+/// <param name="Slug">Stable url-safe key, unique across the catalog. Example: <c>dairy</c>.</param>
+/// <param name="NameEn">English display name. Example: <c>Dairy</c>.</param>
+/// <param name="NameHe">Hebrew display name, used when the client locale is <c>he</c>. Example: <c>מוצרי חלב</c>.</param>
+/// <param name="SortOrder">
+/// Ascending display order; the API sorts by this before returning, so the client should
+/// render in the order it receives. Example: <c>1</c>.
+/// </param>
+/// <param name="Products">
+/// The category's active products, ordered by id. Never <c>null</c> — a category with no
+/// active products comes back with an empty array rather than being omitted.
+/// </param>
 public sealed record CategoryDto(
     int Id,
     string Slug,

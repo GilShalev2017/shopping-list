@@ -17,6 +17,7 @@ Implements section 2 of [`docs/CONTRACT.md`](../../docs/CONTRACT.md).
 | `GET`  | `/api/products?categoryId={id}`   | Active products in one category, `404` if the category is unknown |
 | `GET`  | `/health`                         | `{ "status": "healthy", "database": "connected" }`           |
 | `GET`  | `/swagger`                        | Swagger UI (enabled in every environment)                    |
+| `GET`  | `/swagger/v1/swagger.json`        | The raw OpenAPI 3 document                                   |
 
 All responses are `application/json` in camelCase. `unit` is serialised as one of
 `unit`, `kg`, `pack`, `bottle`, `carton`.
@@ -33,6 +34,57 @@ Errors are RFC 7807 `application/problem+json`:
   "traceId": "0HN7..."
 }
 ```
+
+---
+
+## OpenAPI
+
+The generated document is treated as part of the deliverable, not as a by-product.
+Swagger UI is on in **every** environment (including the container) because the point of
+this service is to be read and driven by someone else.
+
+| What | Where |
+| ---- | ----- |
+| Swagger UI | <http://localhost:5080/swagger> |
+| Raw OpenAPI 3 document | <http://localhost:5080/swagger/v1/swagger.json> |
+
+```bash
+curl -s http://localhost:5080/swagger/v1/swagger.json | jq '.info.title, (.paths | keys)'
+```
+
+That path is the Swashbuckle default and is deliberately left alone, so it stays stable
+for client generators:
+
+```bash
+npx @openapitools/openapi-generator-cli generate \
+  -i http://localhost:5080/swagger/v1/swagger.json -g typescript-fetch -o ./generated
+```
+
+### What is in the document
+
+- **Document metadata** — title `Catalog API`, version `v1`, and a description that says
+  what the service is for: screen 1's categories and products, read from SQL Server
+  through EF Core, shaped by section 2 of the contract.
+- **XML documentation comments.** `CatalogApi.csproj` sets
+  `GenerateDocumentationFile=true`, and `Program.cs` feeds the resulting `CatalogApi.xml`
+  to SwaggerGen. Every endpoint's summary, remarks, parameter text and per-status-code
+  description in the UI is written in the source next to the code it describes, so the two
+  cannot drift apart. `NoWarn` includes `1591`, so undocumented internals do not generate
+  build noise.
+- **Operation grouping.** Actions are grouped by controller — **Categories**, **Products**,
+  **Health** — and each group's blurb is that controller's `<summary>`.
+- **Declared responses.** Every action declares its success type plus its failure types via
+  `[ProducesResponseType]`: `404` and `500` are documented as RFC 7807 `ProblemDetails`, so
+  a consumer can see the error shape without triggering an error.
+- **Schema examples.** `CategoryDto`, `ProductDto` and the health payload carry an
+  `<example>` in their XML comments holding a real contract-shaped JSON object — Hebrew,
+  emoji, `unit` as a string and all. No extra filter types and no attributes on the DTOs.
+- **UI touches.** The page is titled *Catalog API*, the document dropdown reads
+  *Catalog API v1*, and request durations are shown after each **Try it out**.
+
+If `CatalogApi.xml` is ever missing from the publish output, the `IncludeXmlComments` call
+is skipped (it is guarded by `File.Exists`) and the app starts normally with a thinner
+document — a missing doc file can never take the service down.
 
 ---
 

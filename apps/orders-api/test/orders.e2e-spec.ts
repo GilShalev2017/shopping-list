@@ -368,13 +368,176 @@ describe('Orders API (e2e)', () => {
 
   // -------------------------------------------------------------------------
   describe('OpenAPI', () => {
-    it('documents every contract route', async () => {
-      const response = await request(http()).get('/docs-json').expect(200);
-      expect(Object.keys(response.body.paths).sort()).toEqual([
+    let document: any;
+
+    beforeAll(async () => {
+      document = (await request(http()).get('/docs-json').expect(200)).body;
+    });
+
+    it('documents every contract route', () => {
+      expect(Object.keys(document.paths).sort()).toEqual([
         '/api/orders',
         '/api/orders/{id}',
         '/health',
       ]);
+    });
+
+    it('serves the Swagger UI at /docs and the raw document at /docs-json', async () => {
+      await request(http())
+        .get('/docs-json')
+        .expect(200)
+        .expect('Content-Type', /application\/json/);
+
+      const ui = await request(http()).get('/docs').redirects(1);
+      expect([200, 301]).toContain(ui.status);
+    });
+
+    it('gives every operation an id, a summary, a description and a tag', () => {
+      const operations = Object.values(document.paths).flatMap((path: any) =>
+        Object.values(path),
+      ) as any[];
+
+      // POST /api/orders, GET /api/orders, GET /api/orders/{id}, GET /health.
+      expect(operations).toHaveLength(4);
+      operations.forEach((operation) => {
+        expect(typeof operation.operationId).toBe('string');
+        expect(operation.summary.length).toBeGreaterThan(10);
+        expect(operation.description.length).toBeGreaterThan(60);
+        expect(operation.tags).toHaveLength(1);
+      });
+    });
+
+    it('documents both the success and the failure response of every operation', () => {
+      const statusesFor = (path: string, method: string): string[] =>
+        Object.keys(document.paths[path][method].responses).sort();
+
+      expect(statusesFor('/api/orders', 'post')).toEqual(['201', '400']);
+      expect(statusesFor('/api/orders', 'get')).toEqual(['200', '400']);
+      expect(statusesFor('/api/orders/{id}', 'get')).toEqual(['200', '404']);
+      expect(statusesFor('/health', 'get')).toEqual(['200', '503']);
+    });
+
+    it('resolves every documented response to a named schema', () => {
+      const refs = Object.values(document.paths)
+        .flatMap((path: any) => Object.values(path))
+        .flatMap((operation: any) => Object.values(operation.responses))
+        .map((response: any) => response.content?.['application/json']?.schema?.$ref);
+
+      expect(refs.every((ref) => typeof ref === 'string')).toBe(true);
+      refs.forEach((ref: string) => {
+        expect(
+          document.components.schemas[ref.replace('#/components/schemas/', '')],
+        ).toBeDefined();
+      });
+    });
+
+    it('ships worked request examples in both Hebrew and English', () => {
+      const examples =
+        document.paths['/api/orders'].post.requestBody.content['application/json']
+          .examples;
+
+      expect(Object.keys(examples).length).toBeGreaterThanOrEqual(2);
+      expect(examples.hebrewOrder.value.customer.fullName).toBe('ישראל ישראלי');
+      expect(examples.englishOrder.value.locale).toBe('en');
+      Object.values(examples).forEach((example: any) => {
+        expect(example.summary.length).toBeGreaterThan(5);
+      });
+    });
+
+    it.each(['hebrewOrder', 'englishOrder', 'minimalOrder'])(
+      'the documented %s example is actually accepted by the live endpoint',
+      async (name) => {
+        const example =
+          document.paths['/api/orders'].post.requestBody.content['application/json']
+            .examples[name].value;
+
+        await request(http()).post('/api/orders').send(example).expect(201);
+      },
+    );
+
+    it('the deliberately invalid example really does return the documented 400', async () => {
+      const example =
+        document.paths['/api/orders'].post.requestBody.content['application/json']
+          .examples.rejectedTamperedTotal.value;
+
+      const response = await request(http())
+        .post('/api/orders')
+        .send(example)
+        .expect(400);
+
+      expect(response.body.message).toEqual(
+        expect.arrayContaining([expect.stringContaining('totalAmount')]),
+      );
+    });
+
+    it('documents every property of every schema', () => {
+      const undocumented: string[] = [];
+      Object.entries(document.components.schemas as Record<string, any>).forEach(
+        ([schemaName, schema]) => {
+          Object.entries(schema.properties ?? {}).forEach(
+            ([name, property]: [string, any]) => {
+              if (!property.description) {
+                undocumented.push(`${schemaName}.${name}`);
+              }
+            },
+          );
+        },
+      );
+
+      expect(undocumented).toEqual([]);
+    });
+
+    it('mirrors the class-validator constraints into the request schemas', () => {
+      const customer = document.components.schemas.OrderCustomerDto.properties;
+      const item = document.components.schemas.OrderItemDto.properties;
+
+      expect(customer.fullName).toMatchObject({ minLength: 2, maxLength: 120 });
+      expect(customer.address).toMatchObject({ minLength: 5, maxLength: 250 });
+      expect(customer.email).toMatchObject({ maxLength: 200, format: 'email' });
+      expect(item.quantity).toMatchObject({ type: 'integer', minimum: 1, maximum: 999 });
+      expect(item.unitPrice).toMatchObject({ minimum: 0 });
+      expect(document.components.schemas.CreateOrderDto.properties.items).toMatchObject({
+        minItems: 1,
+        maxItems: 100,
+      });
+    });
+
+    it('carries the Hebrew and English catalog examples the README promises', () => {
+      const item = document.components.schemas.OrderItemDto.properties;
+
+      expect(item.nameHe.example).toBe('חלב 3%');
+      expect(item.nameEn.example).toBe('Milk 3%');
+      expect(item.unit.example).toBe('carton');
+      expect(item.unitPrice.example).toBe(6.9);
+      expect(
+        document.components.schemas.OrderCustomerDto.properties.fullName.example,
+      ).toBe('ישראל ישראלי');
+      expect(
+        document.components.schemas.OrderCustomerDto.properties.address.example,
+      ).toBe('הרצל 10, תל אביב');
+    });
+
+    it('describes both pagination query parameters with a schema', () => {
+      const parameters = document.paths['/api/orders'].get.parameters as any[];
+
+      expect(parameters.map((parameter) => parameter.name).sort()).toEqual([
+        'limit',
+        'offset',
+      ]);
+      parameters.forEach((parameter) => {
+        expect(parameter.in).toBe('query');
+        expect(parameter.required).toBe(false);
+        expect(parameter.description.length).toBeGreaterThan(20);
+        expect(parameter.schema.type).toBe('integer');
+      });
+    });
+
+    it('describes the :id path parameter with a ULID example', () => {
+      const [parameter] = document.paths['/api/orders/{id}'].get.parameters as any[];
+
+      expect(parameter).toMatchObject({ name: 'id', in: 'path', required: true });
+      expect(parameter.schema.example).toMatch(ULID_PATTERN);
+      expect(parameter.description.length).toBeGreaterThan(20);
     });
   });
 });

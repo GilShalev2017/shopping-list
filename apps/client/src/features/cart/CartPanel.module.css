@@ -13,12 +13,20 @@
 
 .line {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* Two cells: the emoji + name group (which shrinks and truncates), and the
+     actions group (which never does). */
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
   padding-block: var(--space-3);
   padding-inline: var(--space-5);
   border-block-end: 1px solid var(--border);
+}
+
+/* The tooltip trigger: emoji and text together, so hovering either one shows
+   the full name. */
+.lineMain {
+  min-inline-size: 0;
 }
 
 .line:last-child {

@@ -26,7 +26,8 @@ stable probe path.
 | `GET`  | `/api/orders/:id`               | Single order, or `404`                          |
 | `GET`  | `/api/orders?limit=20&offset=0` | `{ total, items }`, newest first                |
 | `GET`  | `/health`                       | `{ status, driver, store }`, `503` if store down |
-| `GET`  | `/docs`                         | Swagger UI (`/docs-json` for the raw OpenAPI)   |
+| `GET`  | `/docs`                         | Swagger UI                                      |
+| `GET`  | `/docs-json`                    | The raw OpenAPI 3.0 document                    |
 
 ```bash
 curl -s localhost:3000/api/orders -H 'content-type: application/json' -d '{
@@ -68,6 +69,92 @@ and arrays use `@ValidateNested({ each: true })` + `@Type(() => …)`, so an
 invalid cart line reports as `items.3.quantity` rather than as a vague
 `items` error. `fullName` additionally goes through a custom, Unicode-aware
 `@IsTwoWords()` validator (so `ישראל ישראלי` passes and `ישראל` does not).
+
+---
+
+## OpenAPI / Swagger
+
+The document is generated from the code — there is no hand-maintained spec file
+to fall out of date — and it is treated as a deliverable rather than as a
+by-product.
+
+| What                | Where                                                    |
+| ------------------- | -------------------------------------------------------- |
+| Swagger UI          | <http://localhost:3000/docs>                              |
+| Raw OpenAPI 3.0 JSON| <http://localhost:3000/docs-json>                         |
+| Version             | `info.version` is read from `package.json` at boot        |
+
+`/docs-json` is Nest's own convention: `SwaggerModule.setup('docs', …)` serves
+the document at `<path>-json`. It is not left implicit here — `app.setup.ts`
+exports `SWAGGER_JSON_PATH` and passes it as `jsonDocumentUrl`, `main.ts` logs
+it on start-up, and both the unit and the e2e suite assert on it.
+
+```bash
+# The whole document
+curl -s localhost:3000/docs-json | jq .
+
+# Just the paths, or one operation
+curl -s localhost:3000/docs-json | jq -r '.paths | keys[]'
+curl -s localhost:3000/docs-json | jq '.paths["/api/orders"].post.responses'
+
+# Save it, or hand it to a client generator
+curl -s localhost:3000/docs-json -o openapi.json
+npx @openapitools/openapi-generator-cli generate \
+  -i http://localhost:3000/docs-json -g typescript-fetch -o ./generated-client
+```
+
+### What the document actually contains
+
+- **A real `info.description`.** Rendered as Markdown at the top of the UI: what
+  the service is for, the driver table, who owns the totals, how validation
+  errors come back, and the conventions (base path, JSON, ILS).
+- **Two `servers` entries** — `http://localhost:3000` for a host browser and
+  `http://orders-api:3000` for inside the Compose network — so *Try it out*
+  points at something real instead of at the page's own origin.
+- **A described tag per controller group** (`orders`, `health`), declared once in
+  `app.setup.ts` via `SWAGGER_TAGS` so `addTag()` and `@ApiTags()` cannot drift
+  apart.
+- **Every operation** carries an `operationId`, a summary and a multi-paragraph
+  description written in assignment terms, plus `@ApiParam` / `@ApiQuery`
+  entries with descriptions, ranges, defaults and examples.
+- **Every property of every schema** carries a description and an example, and
+  the numeric/length constraints mirror the `class-validator` decorators next to
+  them (`minLength: 2, maxLength: 120` beside `@Length(2, 120)`), so the schema
+  a reader sees is the contract the pipe actually enforces.
+- **Realistic Hebrew and English examples** drawn from the catalog seed data:
+  `ישראל ישראלי`, `הרצל 10, תל אביב`, `חלב 3%` / `Milk 3%`, `carton`, `6.90`.
+- **Four named request bodies** on `POST /api/orders` (`@ApiBody({ examples })`):
+  a Hebrew order, an English multi-line order, a minimal body with `locale`
+  omitted, and one deliberately-invalid body that shows the `400`. Pick one from
+  the *Examples* dropdown and press Execute — they run as-is. The e2e suite
+  **posts the three valid examples at the live app and asserts `201`**, and
+  posts the invalid one and asserts `400`, so a documented example can never rot
+  into a lie.
+- **Both the success and the failure response of every operation**, each pointing
+  at a named schema: `Order`, `PaginatedOrders`, `HealthResponse`,
+  `ValidationErrorResponse`, `NotFoundErrorResponse`.
+
+### Response classes are documentation, not machinery
+
+`Order`, `OrderItem`, `OrderCustomer` and `PaginatedOrders` are the **domain
+model itself**, declared as classes so one definition serves as both the
+TypeScript type and the OpenAPI schema. A parallel set of response DTOs would be
+a second place for the shape to live and a second place for it to drift.
+
+`ValidationErrorResponse`, `NotFoundErrorResponse` and `HealthResponse` are
+*pure schema declarations*: nothing constructs them. The 400 and 404 bodies are
+produced by Nest's own exception layer, and these classes exist only so the
+document shows their real shape instead of an empty `{}`. There is **no
+serialisation interceptor and no `ClassSerializerInterceptor`** anywhere in this
+service — the bytes on the wire are exactly what the repository returned, and
+adding the documentation changed no response by a single character.
+
+### UI options
+
+`SwaggerModule.setup` is configured with `persistAuthorization`,
+`displayRequestDuration` (useful when the whole point is that two different
+stores answer the same contract), `docExpansion: 'list'`, `tryItOutEnabled`, a
+search `filter`, and a `customSiteTitle` carrying the version.
 
 ---
 
@@ -279,8 +366,8 @@ npm run build
 
 `npm test` collects coverage by default and fails below **90 % statements /
 lines / functions and 85 % branches**, so a green run is also a coverage proof.
-Current: **100 % statements, 100 % lines, 100 % functions, 99.15 % branches**
-across 300 tests.
+Current: **100 % statements, 100 % lines, 100 % functions, 99.24 % branches**
+across 316 unit tests, plus 45 e2e tests.
 
 What is covered, and why each part earns its place:
 
@@ -299,7 +386,9 @@ What is covered, and why each part earns its place:
 | `orders-mapping-sync.spec`           | The JSON deliverable and the embedded constant cannot drift.                           |
 | `persistence.module.spec`            | Exactly one adapter is bound per token, for each driver.                               |
 | `app.module.spec`                    | The whole graph compiles under both drivers.                                           |
-| `orders.e2e-spec`                    | Real HTTP: 201 happy path, 400 message arrays, 404, list, `/health`, prefix rules.     |
+| `package-info.spec`                  | The manifest walk that feeds `info.version`, including its fallbacks.                  |
+| `app.setup.spec`                     | Prefix and CORS rules, plus the OpenAPI `info`, `servers` and `tags` blocks.           |
+| `orders.e2e-spec`                    | Real HTTP: 201 happy path, 400 message arrays, 404, list, `/health`, prefix rules — **and the OpenAPI document, including replaying its own documented examples against the live app.** |
 
 The e2e suite boots the real `AppModule` — real config, real global prefix, real
 validation pipe, real Swagger — and overrides only `ORDER_REPOSITORY` with an
@@ -321,10 +410,12 @@ apps/orders-api/
 │   ├── main.ts                     bootstrap
 │   ├── app.setup.ts                pipes, prefix, CORS, Swagger (shared with e2e)
 │   ├── app.module.ts               composition root
-│   ├── common/                     ulid + reference, money rounding, IsTwoWords
+│   ├── common/                     ulid + reference, money rounding, IsTwoWords,
+│   │                               package-info (feeds info.version), error schemas
 │   ├── config/configuration.ts     typed config factory + Joi env validation
-│   ├── health/                     GET /health
-│   ├── orders/                     controller, service, DTOs, entity, mapper
+│   ├── health/                     GET /health + its response schema
+│   ├── orders/                     controller, service, DTOs, entity, mapper,
+│   │                               create-order.examples.ts (Swagger request bodies)
 │   └── persistence/
 │       ├── order-repository.interface.ts    ← the ports
 │       ├── persistence.module.ts            ← the adapter selector
@@ -345,6 +436,12 @@ apps/orders-api/
   redeploying this service every time the catalog adds a unit.
 - **The entity classes double as the OpenAPI schema.** One definition, decorated
   with `@ApiProperty`, rather than a parallel set of response DTOs that can drift.
+  The only classes that exist *purely* for the document are the two error shapes
+  and `HealthResponse`; nothing instantiates them and no serialisation step was
+  introduced, so documenting the API changed no response byte.
+- **`info.version` comes from `package.json`, not a literal.** A hard-coded
+  `setVersion('1.0')` is a string that silently stops being true; reading the
+  manifest means `npm version` is the one place a version number lives.
 - **`ELASTICSEARCH_INDEX` and the mapping are decoupled.** The bootstrap creates
   whatever index name is configured using the same mapping, so `orders-v2` for a
   re-index is just an env change.

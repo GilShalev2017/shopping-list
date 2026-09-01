@@ -1,0 +1,64 @@
+@startuml 00-system-overview
+' Component / deployment view of the whole system.
+' Render: plantuml docs/diagrams/00-system-overview.puml
+'    or:  paste into https://www.plantuml.com/plantuml
+
+title Shopping List — system overview
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Sans
+skinparam ArrowColor #2f5fd8
+skinparam component {
+  BorderColor #2f5fd8
+  BackgroundColor #eef2fd
+}
+skinparam database {
+  BorderColor #0f9d76
+  BackgroundColor #e4f6f0
+}
+
+actor "Shopper" as user
+
+node "Browser" {
+  [React 19 + Redux Toolkit\n<size:11>Vite bundle served by nginx</size>] as client
+}
+
+node "Docker Compose network" {
+
+  package "Screen 1 — catalog" {
+    [catalog-api\n<size:11>.NET 10 Web API</size>\n<size:11>EF Core 10</size>] as catalog
+    database "SQL Server 2022\n<size:11>CatalogDb</size>" as sql
+  }
+
+  package "Screen 2 — orders" {
+    [orders-api\n<size:11>NestJS 11</size>\n<size:11>ports & adapters</size>] as orders
+    database "Elasticsearch 8\n<size:11>index: orders</size>\n<size:11><b>default driver</b></size>" as es
+    database "MongoDB 7\n<size:11>orders.orders</size>\n<size:11>alternative driver</size>" as mongo
+  }
+}
+
+user --> client : uses
+
+client --> catalog : GET /api/categories\nGET /api/products
+client --> orders  : POST /api/orders\nGET /api/orders/{id}
+
+catalog --> sql : EF Core\n(SqlClient, pooled)
+
+orders ..> es    : NOSQL_DRIVER=elasticsearch
+orders ..> mongo : NOSQL_DRIVER=mongodb
+
+note right of orders
+  Exactly **one** adapter is bound to the
+  ORDER_REPOSITORY token at composition
+  time. The service layer above it cannot
+  tell which store is live.
+end note
+
+note bottom of catalog
+  The two backends share **nothing** —
+  no database, no library, no deployment
+  unit. They meet only in the browser.
+end note
+
+@enduml

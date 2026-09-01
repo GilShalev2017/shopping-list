@@ -1,0 +1,133 @@
+@startuml 01-screen1-browse-and-add
+' Screen 1: page load through to a product sitting in the cart.
+' Covers assignment requirements 1, 2 and 3.
+
+title Screen 1 — load the catalog, choose a product, add it to the cart
+
+skinparam shadowing false
+skinparam defaultFontName Sans
+skinparam sequence {
+  ArrowColor #2f5fd8
+  LifeLineBorderColor #9aa7c2
+  ParticipantBorderColor #2f5fd8
+  ParticipantBackgroundColor #eef2fd
+  ActorBorderColor #0f9d76
+  BoxBorderColor #cfd6e6
+}
+
+actor Shopper as user
+
+box "Browser — React + Redux Toolkit" #f7f9ff
+  participant "ShoppingListPage" as page
+  participant "catalogApi\n<size:10>RTK Query</size>" as rtkq
+  participant "cartSlice\n<size:10>reducer</size>" as cart
+  participant "persistence\n<size:10>listener middleware</size>" as persist
+  participant "CartPanel" as panel
+end box
+
+box "catalog-api — .NET 10" #f2fbf8
+  participant "CategoriesController" as ctrl
+  participant "CatalogService" as svc
+  participant "CatalogDbContext\n<size:10>EF Core</size>" as ef
+end box
+
+database "SQL Server\nCatalogDb" as sql
+
+== Requirement 1 — the catalog arrives on page load ==
+
+user -> page : opens /
+activate page
+page -> rtkq : useGetCategoriesQuery()
+activate rtkq
+
+alt cache miss (first mount)
+  rtkq -> ctrl : GET /api/categories
+  activate ctrl
+  ctrl -> svc : GetCategoriesAsync(ct)
+  activate svc
+
+  svc -> ef : Categories\n.OrderBy(SortOrder)\n.AsNoTracking()
+  activate ef
+  ef -> sql : SELECT ... FROM Categories
+  sql --> ef : rows
+  ef --> svc : List<Category>
+  deactivate ef
+
+  svc -> ef : Products\n.Where(IsActive)\n.AsNoTracking()
+  activate ef
+  ef -> sql : SELECT ... FROM Products
+  sql --> ef : rows
+  ef --> svc : List<Product>
+  deactivate ef
+
+  note right of svc
+    Two flat queries stitched in memory
+    rather than a filtered Include:
+    keeps the query provider-agnostic
+    and avoids a cartesian result set.
+  end note
+
+  svc --> ctrl : IReadOnlyList<CategoryDto>
+  deactivate svc
+  ctrl --> rtkq : 200 application/json\n<size:10>categories, each with its products</size>
+  deactivate ctrl
+else cache hit (revisit within 300 s)
+  rtkq --> page : cached data, no request
+end
+
+rtkq --> page : { data, isLoading, isError }
+deactivate rtkq
+
+page -> page : preselect first category
+page --> user : picker + product grid + empty cart
+deactivate page
+
+== Requirement 2 — pick a category, then a product, then a quantity ==
+
+user -> page : select category
+page -> page : setSelectedCategoryId()\nclear product + reset quantity to 1
+note right of page
+  The product dropdown stays **disabled**
+  until a category is chosen — the
+  dependency is the requirement, and
+  disabling states it without an error.
+end note
+
+user -> page : select product
+user -> page : press + on the stepper
+page --> user : live price preview\n<size:10>unitPrice x quantity</size>
+
+== Requirement 3 — add to cart, reflected on screen ==
+
+user -> page : click "Add to cart"
+activate page
+page -> cart : dispatch(itemAdded(product, quantity))
+activate cart
+
+alt product already in the cart
+  cart -> cart : increment existing line\n<size:10>clamped to 1..999</size>
+else new product
+  cart -> cart : create line, push id\n<size:10>preserves insertion order</size>
+end
+cart -> cart : lastAddedId = product.id
+
+cart --> persist : action observed
+activate persist
+persist -> persist : write cart to localStorage\n<size:10>guarded try/catch</size>
+deactivate persist
+
+deactivate cart
+
+cart --> panel : subscribed selectors recompute
+activate panel
+panel -> panel : selectCartItems / selectCartTotal\n<size:10>memoised createSelector</size>
+panel --> user : new line, flash highlight,\nupdated total and header badge
+deactivate panel
+deactivate page
+
+note over cart, panel
+  Totals are **derived**, never stored, so
+  they cannot drift from the items.
+end note
+
+@enduml

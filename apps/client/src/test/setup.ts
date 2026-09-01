@@ -54,3 +54,17 @@ beforeEach(() => {
 
 /** jsdom does not implement scrollTo; silence the "not implemented" noise. */
 Object.defineProperty(window, 'scrollTo', { writable: true, value: () => {} });
+
+/**
+ * jsdom has no ResizeObserver. `useIsTruncated` uses one to re-measure on
+ * layout changes; a no-op stub is enough, because jsdom never lays anything out
+ * anyway — tests that care about truncation stub the width properties directly
+ * (see `mockTruncation` in src/test/truncation.ts).
+ */
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
