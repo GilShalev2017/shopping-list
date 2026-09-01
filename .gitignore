@@ -78,3 +78,14 @@ desktop.ini
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# --- Root lockfile guard -----------------------------------------------------
+# There is no package.json at the repository root: this is a monorepo of three
+# independently installed applications (apps/client, apps/orders-api and the
+# .NET app). A `package-lock.json` here can only be the residue of an
+# `npm install` run in the wrong directory, and a committed one is worse than
+# useless — it makes `npm ci` at the root appear meaningful when it is not.
+# The pattern is anchored with a leading slash so the real lockfiles in
+# apps/client and apps/orders-api stay tracked.
+/package-lock.json
+/node_modules/

@@ -1,0 +1,172 @@
+name: CI
+
+# Runs the same checks a reviewer would run on a clean clone.
+#
+# The `docker-build` job is the important one: it is the only thing that
+# exercises `npm ci` inside the images exactly as `docker compose up --build`
+# does. A package-lock.json that has drifted out of sync with its package.json
+# passes every local test and then fails a fresh clone — that is precisely the
+# class of bug this job exists to catch.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push supersedes an in-flight run for the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  client:
+    name: Client — lint, types, tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/client/package-lock.json
+
+      # `npm ci` rather than `npm install`: it fails loudly when the lockfile
+      # and package.json disagree, instead of quietly resolving something new.
+      - name: Install (locked)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Tests with coverage thresholds
+        run: npm run test:cov
+
+      - name: Production build
+        run: npm run build
+
+  orders-api:
+    name: Orders API — lint, tests, e2e
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/orders-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/orders-api/package-lock.json
+
+      - name: Install (locked)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      # No database needed: the suites mock the clients, and the e2e suite
+      # substitutes an in-memory repository at the ORDER_REPOSITORY token.
+      - name: Unit tests with coverage thresholds
+        run: npm test
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+  catalog-api:
+    name: Catalog API — build and tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/catalog-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      # Uses the EF Core in-memory provider, so no SQL Server is required.
+      - name: Tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+  docker-build:
+    name: Docker images build from a clean checkout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Builds all three images. This is what catches a lockfile that is out of
+      # sync with its package.json, because the Dockerfiles run `npm ci`.
+      - name: Build every image
+        run: docker compose --profile apps build
+
+  smoke:
+    name: Full stack starts and answers
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      - uses: actions/checkout@v4
+
+      # `--wait` blocks until every service passes its healthcheck, so this
+      # fails if SQL Server never accepts connections, if Elasticsearch cannot
+      # parse its own configuration, or if a migration or seed throws.
+      - name: Start the whole stack
+        run: docker compose --profile apps up -d --build --wait --wait-timeout 420
+
+      - name: Catalog API is healthy and seeded
+        run: |
+          curl -fsS http://localhost:5080/health | tee /dev/stderr | grep -q '"database":"connected"'
+          test "$(curl -fsS http://localhost:5080/api/categories | jq 'length')" -gt 0
+
+      - name: Orders API is healthy
+        run: |
+          curl -fsS http://localhost:3000/health | tee /dev/stderr | grep -q '"store":"connected"'
+
+      - name: Elasticsearch index was created from the mapping file
+        run: |
+          curl -fsS http://localhost:9200/orders/_mapping | jq -e '.orders.mappings.dynamic == "strict"'
+          curl -fsS http://localhost:9200/orders/_mapping | jq -e '.orders.mappings.properties.items.type == "nested"'
+
+      - name: Placing an order persists it end to end
+        run: |
+          id=$(curl -fsS -X POST http://localhost:3000/api/orders \
+            -H 'Content-Type: application/json' \
+            -d '{"customer":{"fullName":"CI Runner","address":"1 Pipeline Way, Tel Aviv","email":"ci@example.com"},
+                 "items":[{"productId":101,"categoryId":1,"nameEn":"Milk 3%","nameHe":"חלב 3%",
+                           "unit":"carton","quantity":2,"unitPrice":6.90}],"locale":"en"}' \
+            | jq -r '.id')
+          echo "created order $id"
+          curl -fsS "http://localhost:3000/api/orders/$id" | jq -e '.totalAmount == 13.8'
+
+      - name: The client is being served
+        run: curl -fsS http://localhost:8080 | grep -qi '<div id="root">'
+
+      # Logs are worth far more than the failure line on its own.
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker compose --profile apps logs --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile apps down -v
