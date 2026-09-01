@@ -1,0 +1,261 @@
+###############################################################################
+# Shopping List — runnable API examples
+#
+# Every request below can be executed inline, with nothing installed beyond an
+# editor extension:
+#
+#   VS Code   → install "REST Client" (humao.rest-client), then click
+#               "Send Request" above any request.
+#   Rider     → built in. Click the ▶ in the gutter.
+#   IntelliJ  → built in (HTTP Client).
+#
+# This is usually a better way to talk to Elasticsearch than a GUI: the queries
+# are version-controlled, reviewable, and they are the actual Query DSL rather
+# than a form that hides it.
+#
+# Prerequisites: `docker compose up -d` (databases) and the services running.
+###############################################################################
+
+@catalog   = http://localhost:5080
+@orders    = http://localhost:3000
+@elastic   = http://localhost:9200
+@index     = orders
+
+
+###############################################################################
+# 1. Catalog API — screen 1 (.NET 10 + EF Core + SQL Server)
+###############################################################################
+
+### Health — is the API up and can it reach SQL Server?
+GET {{catalog}}/health
+
+### Every category with its products. This single request populates screen 1.
+GET {{catalog}}/api/categories
+
+### One category
+GET {{catalog}}/api/categories/1
+
+### An unknown category — RFC 7807 problem+json, not a bare 404
+GET {{catalog}}/api/categories/9999
+
+### All active products
+GET {{catalog}}/api/products
+
+### Products filtered by category
+GET {{catalog}}/api/products?categoryId=1
+
+
+###############################################################################
+# 2. Orders API — screen 2 (NestJS + Elasticsearch / MongoDB)
+###############################################################################
+
+### Health — note the `driver` field: it names the store that is actually live
+GET {{orders}}/health
+
+### Place an order (Hebrew)
+# @name createOrder
+POST {{orders}}/api/orders
+Content-Type: application/json
+
+{
+  "customer": {
+    "fullName": "ישראל ישראלי",
+    "address": "הרצל 10, תל אביב",
+    "email": "israel@example.com"
+  },
+  "items": [
+    {
+      "productId": 101, "categoryId": 1,
+      "nameEn": "Milk 3%", "nameHe": "חלב 3%",
+      "unit": "carton", "quantity": 2, "unitPrice": 6.90
+    },
+    {
+      "productId": 201, "categoryId": 2,
+      "nameEn": "Bananas", "nameHe": "בננות",
+      "unit": "kg", "quantity": 1, "unitPrice": 8.50
+    }
+  ],
+  "locale": "he"
+}
+
+### Fetch the order just created (uses the id from the response above)
+GET {{orders}}/api/orders/{{createOrder.response.body.id}}
+
+### List orders, newest first
+GET {{orders}}/api/orders?limit=10&offset=0
+
+### Validation failure — one-word name, bad email, empty items.
+# Returns 400 with one message per broken rule.
+POST {{orders}}/api/orders
+Content-Type: application/json
+
+{
+  "customer": { "fullName": "Dana", "address": "x", "email": "not-an-email" },
+  "items": []
+}
+
+### An unknown property is REJECTED, not silently ignored
+# (`forbidNonWhitelisted: true` — an unexpected field is a bug or an attack)
+POST {{orders}}/api/orders
+Content-Type: application/json
+
+{
+  "customer": {
+    "fullName": "Dana Levi",
+    "address": "Herzl 10, Tel Aviv",
+    "email": "dana@example.com"
+  },
+  "items": [
+    {
+      "productId": 101, "categoryId": 1,
+      "nameEn": "Milk 3%", "nameHe": "חלב 3%",
+      "unit": "carton", "quantity": 1, "unitPrice": 6.90
+    }
+  ],
+  "totalAmount": 0.01
+}
+
+### The raw OpenAPI document
+GET {{orders}}/docs-json
+
+
+###############################################################################
+# 3. Elasticsearch — direct
+#
+# Only meaningful while NOSQL_DRIVER=elasticsearch (the default). Check with
+# GET {{orders}}/health first.
+###############################################################################
+
+### Cluster health. "yellow" is correct for a single node — a replica can never
+### be allocated with only one node, so green is unreachable by design.
+GET {{elastic}}/_cluster/health?pretty
+
+### The mapping the service installed from infra/elasticsearch/orders.mapping.json
+GET {{elastic}}/{{index}}/_mapping?pretty
+
+### Index stats — document count, store size
+GET {{elastic}}/{{index}}/_stats/docs,store?pretty
+
+### All orders, newest first
+POST {{elastic}}/{{index}}/_search?pretty
+Content-Type: application/json
+
+{
+  "size": 10,
+  "track_total_hits": true,
+  "query": { "match_all": {} },
+  "sort": [ { "createdAt": "desc" } ]
+}
+
+### Find by the human reference (exact — `reference` is a keyword)
+POST {{elastic}}/{{index}}/_search?pretty
+Content-Type: application/json
+
+{
+  "query": { "term": { "reference": "ORD-8F3A21" } }
+}
+
+### Find by email. Case-insensitive without an analyzer, because the field is a
+### keyword with a lowercase normalizer — try changing the case and re-running.
+POST {{elastic}}/{{index}}/_search?pretty
+Content-Type: application/json
+
+{
+  "query": { "term": { "customer.email": "ISRAEL@EXAMPLE.COM" } }
+}
+
+### Free-text search across customer names (`fullName` is text + .keyword)
+POST {{elastic}}/{{index}}/_search?pretty
+Content-Type: application/json
+
+{
+  "query": { "match": { "customer.fullName": "ישראלי" } }
+}
+
+### ---------------------------------------------------------------------------
+### THE ONE THAT MATTERS: why `items` is mapped as `nested`
+###
+### This asks for orders containing *2 cartons of milk* — both conditions must
+### hold on the SAME line item. `nested` keeps each item a separate hidden
+### document, so the association survives.
+### ---------------------------------------------------------------------------
+POST {{elastic}}/{{index}}/_search?pretty
+Content-Type: application/json
+
+{
+  "query": {
+    "nested": {
+      "path": "items",
+      "query": {
+        "bool": {
+          "must": [
+            { "term": { "items.unit": "carton" } },
+            { "term": { "items.quantity": 2 } }
+          ]
+        }
+      },
+      "inner_hits": {}
+    }
+  }
+}
+
+### The same query WITHOUT `nested` — this is what a plain object array would do.
+### It matches an order that has *some* carton and *some* line of quantity 2,
+### even if they are different products. Run both against an order containing
+### 2 kg of bananas and 1 carton of milk to see them disagree.
+POST {{elastic}}/{{index}}/_search?pretty
+Content-Type: application/json
+
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "items.unit": "carton" } },
+        { "term": { "items.quantity": 2 } }
+      ]
+    }
+  }
+}
+
+### Aggregation: revenue and order count per day
+POST {{elastic}}/{{index}}/_search?pretty
+Content-Type: application/json
+
+{
+  "size": 0,
+  "aggs": {
+    "per_day": {
+      "date_histogram": { "field": "createdAt", "calendar_interval": "day" },
+      "aggs": { "revenue": { "sum": { "field": "totalAmount" } } }
+    }
+  }
+}
+
+### Aggregation over nested items: best-selling products by quantity
+POST {{elastic}}/{{index}}/_search?pretty
+Content-Type: application/json
+
+{
+  "size": 0,
+  "aggs": {
+    "items": {
+      "nested": { "path": "items" },
+      "aggs": {
+        "by_product": {
+          "terms": { "field": "items.nameEn.keyword", "size": 10 },
+          "aggs": { "units": { "sum": { "field": "items.quantity" } } }
+        }
+      }
+    }
+  }
+}
+
+### Proof that the mapping is strict: an unknown field is rejected with a 400
+### ("strict_dynamic_mapping_exception") rather than silently creating a field.
+POST {{elastic}}/{{index}}/_doc?refresh=wait_for
+Content-Type: application/json
+
+{
+  "id": "bad-doc",
+  "totallyUnexpectedField": "this will be refused"
+}

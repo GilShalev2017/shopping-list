@@ -32,7 +32,7 @@ export const CONFIG_DEFAULTS = {
   NOSQL_DRIVER: 'elasticsearch' as NosqlDriver,
   ELASTICSEARCH_NODE: 'http://localhost:9200',
   ELASTICSEARCH_INDEX: 'orders',
-  MONGODB_URI: 'mongodb://localhost:27017',
+  MONGODB_URI: 'mongodb://localhost:27018',
   MONGODB_DATABASE: 'orders',
   MONGODB_COLLECTION: 'orders',
   MONGODB_MAX_POOL_SIZE: 10,

@@ -50,10 +50,16 @@ services:
       xpack.security.http.ssl.enabled: "false"
       ES_JAVA_OPTS: -Xms512m -Xmx512m
       cluster.routing.allocation.disk.threshold_enabled: "false"
-      # Required by the browser-based Elasticvue viewer, which talks to the
+      # Required only by the browser-based Elasticvue viewer, which calls the
       # cluster directly from the page rather than through a server.
+      #
+      # allow-origin MUST be the regex form, not a bare "*". Elasticsearch
+      # renders these variables into its own elasticsearch.yml, and a lone
+      # asterisk there is a YAML *alias* token, so the node dies at boot with
+      # "while scanning an alias ... unexpected character". /.*/ is the
+      # documented escape and is equivalent to allowing every origin.
       http.cors.enabled: "true"
-      http.cors.allow-origin: "*"
+      http.cors.allow-origin: /.*/
       http.cors.allow-headers: X-Requested-With,Content-Type,Content-Length,Authorization
       http.cors.allow-credentials: "true"
     ulimits:
@@ -79,7 +85,7 @@ services:
     image: mongo:7
     container_name: sl-mongodb
     ports:
-      - "${MONGODB_PORT:-27017}:27017"
+      - "${MONGODB_PORT:-27018}:27017"
     volumes:
       - mongodb-data:/data/db
     healthcheck:

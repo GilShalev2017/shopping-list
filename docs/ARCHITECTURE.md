@@ -51,8 +51,8 @@ deployment units and two connection pools, which at this scale is trivial.
 
 **The two backends share nothing.** No database, no shared library, no common
 deployment unit. They are joined only in the browser. That means either can be
-stopped and the other keeps serving its screen — a property worth demonstrating
-in an interview by stopping one container.
+stopped and the other keeps serving its screen — a property you can demonstrate
+by stopping one container.
 
 ### Trust boundary
 
@@ -83,8 +83,8 @@ silently drifts. Writing it down first means:
   contract, not a guess at what the server returns.
 - The C# records in `Contracts/` and the Nest DTOs both serialise to shapes the
   contract prescribes, with camelCase and the same enum spellings.
-- When the interviewer asks "what happens if the catalog adds a field", the
-  answer is a document, not a shrug.
+- When someone asks "what happens if the catalog adds a field", the answer is a
+  document rather than a shrug.
 
 Both services also publish **OpenAPI** documents generated from the code
 (`/swagger` and `/docs`), so the contract is machine-checkable at runtime, not
@@ -213,7 +213,7 @@ carries `_one`, `_two`, `_many` and `_other` forms.
 `features/*/` holds components that are connected to the store. Pages compose
 features.
 
-Two pieces worth pointing at in an interview:
+Two pieces worth calling out:
 
 **`Tooltip`** renders through a **portal** onto `<body>` and positions itself in
 viewport coordinates. The cart list is a scroll container, so a bubble
@@ -685,7 +685,7 @@ pluggable design credible.
 
 **Guard the things humans forget.** A test asserts every i18n key exists in both
 languages with matching interpolation placeholders, so a forgotten Hebrew string
-is a red build rather than a `missingKey` in front of the interviewer. Another
+is a red build rather than a `missingKey` in front of a user. Another
 deep-equals the Elasticsearch mapping file against its embedded copy. The
 orders e2e suite replays the OpenAPI document's own examples against the live
 app, so a documented example cannot silently rot.
@@ -698,8 +698,7 @@ asserts on the exact payload the orders API received.
 
 ## 9. Design patterns index
 
-For quick reference in an interview. Each is a real usage in this codebase, not
-a checklist entry.
+Each entry is a real usage in this codebase, not a checklist entry.
 
 | Pattern | Where | Why there |
 |---|---|---|

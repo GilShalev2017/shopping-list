@@ -22,7 +22,7 @@ describe('configuration', () => {
           password: undefined,
         },
         mongodb: {
-          uri: 'mongodb://localhost:27017',
+          uri: 'mongodb://localhost:27018',
           database: 'orders',
           collection: 'orders',
           maxPoolSize: 10,
@@ -143,7 +143,7 @@ describe('configuration', () => {
         NOSQL_DRIVER: 'elasticsearch',
         ELASTICSEARCH_NODE: 'http://localhost:9200',
         ELASTICSEARCH_INDEX: 'orders',
-        MONGODB_URI: 'mongodb://localhost:27017',
+        MONGODB_URI: 'mongodb://localhost:27018',
         MONGODB_DATABASE: 'orders',
         MONGODB_COLLECTION: 'orders',
         CORS_ORIGINS: 'http://localhost:5173',

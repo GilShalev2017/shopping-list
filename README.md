@@ -20,7 +20,7 @@ assignment asks for is at
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | **Start here.** Every technology and design pattern used, with the reasoning and the rejected alternatives — EF Core modelling, the Elasticsearch mapping, the ports-and-adapters persistence layer, Redux state ownership, a design-pattern index and a decision log |
 | [`docs/CONTRACT.md`](docs/CONTRACT.md) | The binding API contract all three components were built against |
 | [`docs/diagrams/`](docs/diagrams/) | PlantUML sequence and component diagrams, with rendered SVGs |
-| [`docs/interview-prep.html`](docs/interview-prep.html) | Q&A walkthrough of the codebase (open it in a browser) |
+| [`docs/api-examples.http`](docs/api-examples.http) | **Runnable requests** for both APIs and Elasticsearch — open in VS Code with the REST Client extension, or Rider/IntelliJ, and click Send |
 | [`apps/*/README.md`](apps/) | Per-service detail |
 
 ---
@@ -44,7 +44,7 @@ Then open **<http://localhost:8080>**.
 | Orders API (Swagger) | <http://localhost:3000/docs> |
 | Elasticsearch | <http://localhost:9200> |
 | SQL Server | `localhost,1433` — user `sa`, password `Your_strong_Passw0rd` |
-| MongoDB | `mongodb://localhost:27017` |
+| MongoDB | `mongodb://localhost:27018` |
 
 Optional database viewers, started separately — see
 [Database viewers](#database-viewers):
@@ -69,7 +69,93 @@ curl http://localhost:9200/orders/_mapping # the mapping the service installed
 ```
 
 Shut down with `docker compose --profile apps down`, or
-`docker compose --profile apps down -v` to also drop the data volumes.
+`docker compose --profile apps down -v` to also drop the data volumes. Note that
+`down` stops **everything** regardless of profile — it is not the mirror image of
+the `up` you ran.
+
+### Run modes at a glance
+
+| I want… | Command | Containers |
+|---|---|---|
+| **Only the databases** — run the three apps from an IDE | `docker compose up -d` | 3: `sqlserver`, `elasticsearch`, `mongodb` |
+| **Everything** | `docker compose --profile apps up -d` | 6: the 3 databases + `catalog-api`, `orders-api`, `client` |
+| **Databases + DB viewers** | `docker compose --profile tools up -d` | 5: the 3 databases + `mongo-express`, `elasticvue` |
+| **Everything + DB viewers** | `docker compose --profile apps --profile tools up -d` | 8 |
+| **Add Kibana too** | `docker compose --profile kibana up -d` | + `kibana` |
+
+The three databases carry no profile, so they start in every mode. Check what is
+actually up with `docker compose ps`.
+
+### Connection cheat sheet
+
+Everything you need to reach any part of the running stack, in one place.
+
+| Target | URL / connection string | Notes |
+|---|---|---|
+| **Client** | <http://localhost:8080> | Containerised (nginx). Dev server is <http://localhost:5173> |
+| **Catalog API** | <http://localhost:5080> | Swagger UI at **<http://localhost:5080/swagger>** |
+| **Orders API** | <http://localhost:3000> | Swagger UI at **<http://localhost:3000/docs>**, raw document at `/docs-json` |
+| **SQL Server** — SSMS / Azure Data Studio | Server `localhost,1433`, SQL auth, login `sa`, password `Your_strong_Passw0rd`, database `CatalogDb` | ⚠️ **Tick "Trust server certificate"** or the connection is refused |
+| **SQL Server** — connection string | `Server=localhost,1433;Database=CatalogDb;User Id=sa;Password=Your_strong_Passw0rd;TrustServerCertificate=True;` | |
+| **Elasticsearch** — HTTP | <http://localhost:9200> | No auth. `curl localhost:9200/orders/_search?pretty` |
+| **Elasticsearch** — Elasticvue viewer | <http://localhost:8082> | `--profile tools`. On first load enter cluster URI `http://localhost:9200`, no auth |
+| **Elasticsearch** — Kibana | <http://localhost:5601> | `--profile kibana`. Dev Tools → `GET orders/_search` |
+| **MongoDB** — Compass / shell | `mongodb://localhost:27018` | **27018, not 27017** — deliberate, see [Ports and locally installed databases](#ports-and-locally-installed-databases). No auth. DB `orders`, collection `orders` |
+| **MongoDB** — mongo-express viewer | <http://localhost:8081> | `--profile tools`, no login |
+
+> **Which store holds the orders?** Elasticsearch, by default — `NOSQL_DRIVER`
+> defaults to `elasticsearch`. Confirm at any time with
+> `curl http://localhost:3000/health`, whose `driver` field names the live store.
+> See [Choosing the orders database](#choosing-the-orders-database) to switch.
+
+### Ports and locally installed databases
+
+Developer machines very often already run SQL Server or MongoDB natively, and
+those installs own the standard ports. This is the nastiest class of problem here
+because **nothing errors loudly**: either the container fails to bind the port, or
+your GUI quietly connects to the *local* instance and shows an empty or
+unfamiliar database while the application is happily using the container.
+
+Two deliberate choices, so a fresh clone works on the widest range of machines:
+
+| Database | Host port | Why |
+|---|---|---|
+| **MongoDB** | **27018** | Moved off the default 27017. A local MongoDB install is common, and it is the one most likely to clash silently |
+| SQL Server | 1433 | Left on the canonical port. A default-instance local SQL Server would clash, but SQL Express usually uses a named instance on a dynamic port, so a collision is much rarer |
+| Elasticsearch | 9200 | Rarely installed natively |
+
+Inside Docker nothing changes: the services reach each other over the Compose
+network as `mongodb:27017`, `sqlserver:1433` and `elasticsearch:9200`. The host
+port only matters to tools on **your** machine, and to an app you run natively.
+
+**Which one am I connected to?** Ask the container directly — whatever these
+print is the truth:
+
+```bash
+docker compose ps                       # is the container actually running?
+
+docker exec -it sl-mongodb mongosh --quiet \
+  --eval "db.getMongo().getDBNames()"
+
+docker exec -it sl-sqlserver /opt/mssql-tools18/bin/sqlcmd \
+  -S localhost -U sa -P "Your_strong_Passw0rd" -C \
+  -Q "SELECT name FROM sys.databases"
+```
+
+If your GUI disagrees with that, you are looking at your local install.
+
+**Still clashing?** Copy `.env.example` to `.env` and move the offending service:
+
+```ini
+MSSQL_PORT=1434
+MONGODB_PORT=27019
+ELASTICSEARCH_PORT=9201
+```
+
+then `docker compose up -d`. Point your GUI at the new port. If you also run
+**orders-api natively**, update `MONGODB_URI` in `apps/orders-api/.env` to match —
+a natively-run service uses the host port, not the Compose network. Likewise
+catalog-api's connection string if you move `MSSQL_PORT`.
 
 ### Running the apps from your IDE instead
 
@@ -416,11 +502,24 @@ docker exec -it sl-sqlserver /opt/mssql-tools18/bin/sqlcmd \
 cross-platform. Connection string:
 
 ```
-mongodb://localhost:27017
+mongodb://localhost:27018
 ```
 
-No username or password — the local container runs without authentication.
-Orders land in database **`orders`**, collection **`orders`**.
+⚠️ **27018, not MongoDB's usual 27017** — deliberate, see
+[Ports and locally installed databases](#ports-and-locally-installed-databases).
+No username or password. Orders land in database **`orders`**, collection
+**`orders`**.
+
+> **When does the collection appear?** MongoDB normally creates a database and
+> collection lazily, on first write — but this service does not wait for that.
+> `MongoOrderRepository` calls `createIndexes` on start-up, and `createIndexes`
+> against a missing collection creates it. So the `orders` database and its
+> collection exist, empty and indexed, from the moment orders-api starts **with
+> `NOSQL_DRIVER=mongodb`**.
+>
+> Running the default Elasticsearch driver, Mongo stays entirely empty and
+> Compass shows no `orders` database at all. That is expected — the two stores
+> are independent, and only the active driver is ever touched.
 
 Or use the containerised UI with nothing to install:
 
@@ -437,7 +536,28 @@ docker exec -it sl-mongodb mongosh --quiet \
   --eval 'db.getSiblingDB("orders").orders.find().sort({createdAt:-1}).limit(3)'
 ```
 
-### Elasticsearch — Elasticvue or Kibana
+### Elasticsearch — an HTTP client is usually the best tool
+
+Elasticsearch *is* an HTTP API, so the most direct way to talk to it needs no
+container at all. [`docs/api-examples.http`](docs/api-examples.http) has every
+useful query already written out — cluster health, the installed mapping, the
+`nested` item query alongside its broken non-nested twin, revenue and
+best-seller aggregations, and a request proving the mapping is strict. Open it
+in VS Code with the **REST Client** extension (built in to Rider and IntelliJ)
+and click *Send Request*.
+
+That beats a GUI on three counts: the queries are version-controlled, they are
+the real Query DSL rather than a form that hides it, and a reviewer can run them
+without installing or starting anything.
+
+No editor extension either? Plain curl:
+
+```bash
+curl 'http://localhost:9200/orders/_search?pretty&size=3&sort=createdAt:desc'
+curl 'http://localhost:9200/orders/_mapping?pretty'
+```
+
+If you prefer to click around, there are two graphical options.
 
 ```bash
 docker compose --profile tools up -d elasticvue
@@ -513,7 +633,7 @@ rendered SVGs:
                           ▼                       ▼                 ▼
                   ┌──────────────┐      ┌─────────────────┐  ┌────────────┐
                   │  SQL Server  │      │  Elasticsearch  │  │  MongoDB   │
-                  │    :1433     │      │      :9200      │  │   :27017   │
+                  │    :1433     │      │      :9200      │  │   :27018   │
                   └──────────────┘      └─────────────────┘  └────────────┘
                                           (default driver)     (alternative)
 ```
@@ -668,7 +788,7 @@ stack. See [`docs/CONTRACT.md` §4](docs/CONTRACT.md) for the authoritative list
 | Variable | Default | Purpose |
 |---|---|---|
 | `CLIENT_PORT` / `CATALOG_API_PORT` / `ORDERS_API_PORT` | `8080` / `5080` / `3000` | Host ports |
-| `MSSQL_PORT` / `ELASTICSEARCH_PORT` / `MONGODB_PORT` | `1433` / `9200` / `27017` | Database ports |
+| `MSSQL_PORT` / `ELASTICSEARCH_PORT` / `MONGODB_PORT` | `1433` / `9200` / **`27018`** | Database host ports |
 | `MONGO_EXPRESS_PORT` / `ELASTICVUE_PORT` / `KIBANA_PORT` | `8081` / `8082` / `5601` | Viewer ports (`tools` / `kibana` profiles) |
 | `MSSQL_SA_PASSWORD` | `Your_strong_Passw0rd` | Must meet SQL Server's policy |
 | `NOSQL_DRIVER` | `elasticsearch` | `elasticsearch` \| `mongodb` |
@@ -689,7 +809,7 @@ stack. See [`docs/CONTRACT.md` §4](docs/CONTRACT.md) for the authoritative list
 |---|---|
 | `NOSQL_DRIVER` | `elasticsearch` |
 | `ELASTICSEARCH_NODE` / `ELASTICSEARCH_INDEX` | `http://localhost:9200` / `orders` |
-| `MONGODB_URI` / `MONGODB_DATABASE` / `MONGODB_COLLECTION` | `mongodb://localhost:27017` / `orders` / `orders` |
+| `MONGODB_URI` / `MONGODB_DATABASE` / `MONGODB_COLLECTION` | `mongodb://localhost:27018` / `orders` / `orders` |
 | `CORS_ORIGINS` | `http://localhost:5173` |
 
 ### client
@@ -791,6 +911,22 @@ The catalog API is not up. `docker compose logs catalog-api`. The usual cause is
 SQL Server still starting — the API retries for about 80 seconds and reports
 `503` on `/health` in the meantime rather than crash-looping.
 
+**Elasticsearch dies at boot with "while scanning an alias".**
+Full error: `unexpected character found (10)` pointing at
+`http.cors.allow-origin: *`. Elasticsearch renders its environment variables
+into its own `elasticsearch.yml`, and a bare `*` there is a YAML **alias** token,
+so the node refuses to parse its own config. The value must be the regex form
+`/.*/`, which `docker-compose.yml` now uses. If you hit this on an older copy,
+update that line and recreate the container — the data volume survives:
+
+```bash
+docker compose up -d --force-recreate elasticsearch
+```
+
+Everything that depends on Elasticsearch (`orders-api`, `elasticvue`) will report
+`dependency failed to start` until the node itself is healthy, so fix this first
+and ignore the downstream errors.
+
 **Elasticsearch exits immediately.**
 Almost always the host's `vm.max_map_count`. On Linux:
 `sudo sysctl -w vm.max_map_count=262144`. On Docker Desktop the default is
@@ -801,6 +937,9 @@ Copy `.env.example` to `.env` and change the offending `*_PORT`. If you change
 `CATALOG_API_PORT` or `ORDERS_API_PORT` you must rebuild the client
 (`docker compose --profile apps up -d --build client`), because those URLs are
 compiled into the bundle.
+
+**Something is connected, but is it the container or my local install?**
+See [Ports and locally installed databases](#ports-and-locally-installed-databases).
 
 **Orders succeed but `GET /api/orders` looks empty.**
 Check which driver is live: `curl http://localhost:3000/health`. Orders written

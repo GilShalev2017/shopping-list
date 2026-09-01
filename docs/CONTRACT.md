@@ -15,7 +15,7 @@ If a shape changes here, it changes in every app.
 | orders-api     | 3000        | 3000               | 3000           |
 | SQL Server     | 1433        | 1433               | 1433           |
 | Elasticsearch  | 9200        | 9200               | 9200           |
-| MongoDB        | 27017       | 27017              | 27017          |
+| MongoDB        | 27018       | 27018              | 27017          |
 
 ---
 
@@ -157,7 +157,7 @@ Validation failure → `400`:
 | `ELASTICSEARCH_INDEX`   | `orders`                 |                                    |
 | `ELASTICSEARCH_USERNAME`| _(empty)_                | optional basic auth                |
 | `ELASTICSEARCH_PASSWORD`| _(empty)_                |                                    |
-| `MONGODB_URI`           | `mongodb://localhost:27017` |                                 |
+| `MONGODB_URI`           | `mongodb://localhost:27018` | host port avoids a local install |
 | `MONGODB_DATABASE`      | `orders`                 |                                    |
 | `MONGODB_COLLECTION`    | `orders`                 |                                    |
 | `CORS_ORIGINS`          | `http://localhost:5173`  | comma separated                    |
